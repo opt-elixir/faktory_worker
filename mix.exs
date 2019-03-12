@@ -18,6 +18,8 @@ defmodule FaktoryWorker.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:mox, "~> 0.5", only: :test}
+    ]
   end
 end
