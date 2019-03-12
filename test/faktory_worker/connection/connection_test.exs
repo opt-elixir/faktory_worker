@@ -36,5 +36,17 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       assert connection.port == 5002
       assert connection.socket == :test_socket
     end
+
+    test "should return a socket error" do
+      opts = [socket_module: FaktoryWorker.SocketMock]
+
+      expect(FaktoryWorker.SocketMock, :connect, fn _, _ ->
+        {:error, :econnrefused}
+      end)
+
+      {:error, reason} = Connection.open(opts)
+
+      assert reason == :econnrefused
+    end
   end
 end
