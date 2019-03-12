@@ -1,15 +1,15 @@
 defmodule FaktoryWorker.Connection.IntegrationTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
-  alias FaktoryWorker.Socket
   alias FaktoryWorker.Connection
 
   describe "open/1" do
     test "should return a connection to faktory" do
-      {:ok, %Socket{} = connection} = Connection.open()
+      {:ok, %Connection{} = connection} = Connection.open()
 
       assert connection.host == "localhost"
       assert connection.port == 7419
+      assert connection.socket_handler == FaktoryWorker.Socket.Tcp
       assert is_port(connection.socket)
     end
 

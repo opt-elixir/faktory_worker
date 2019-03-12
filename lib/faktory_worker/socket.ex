@@ -1,11 +1,13 @@
 defmodule FaktoryWorker.Socket do
   @moduledoc false
 
-  alias FaktoryWorker.Socket
-
-  @enforce_keys [:host, :port, :socket]
-  defstruct [:host, :port, :socket]
+  alias FaktoryWorker.Connection
 
   @callback connect(host :: String.t(), port :: pos_integer()) ::
-              {:ok, %Socket{}} | {:error, term()}
+              {:ok, %Connection{}} | {:error, term()}
+
+  @callback send(connection :: %Connection{}, payload :: String.t()) ::
+              :ok | {:error, term()}
+
+  @callback recv(connection :: %Connection{}) :: {:ok, String.t()} | {:error, term()}
 end
