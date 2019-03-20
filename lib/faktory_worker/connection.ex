@@ -1,7 +1,5 @@
 defmodule FaktoryWorker.Connection do
-  @moduledoc """
-
-  """
+  @moduledoc false
 
   alias FaktoryWorker.Connection
   alias FaktoryWorker.Socket.Tcp
