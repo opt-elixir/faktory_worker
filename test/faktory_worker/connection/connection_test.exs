@@ -88,7 +88,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
   describe "recv/1" do
     test "should call into the socket handler" do
       expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        :called_handler
+        {:ok, "+OK\r\n"}
       end)
 
       connection = %Connection{
@@ -98,7 +98,22 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
         socket_handler: FaktoryWorker.SocketMock
       }
 
-      assert :called_handler == Connection.recv(connection)
+      assert {:ok, "OK"} == Connection.recv(connection)
+    end
+
+    test "should return faktory error" do
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "-ERR Some error\r\n"}
+      end)
+
+      connection = %Connection{
+        host: "localhost",
+        port: 1234,
+        socket: :test_socket,
+        socket_handler: FaktoryWorker.SocketMock
+      }
+
+      assert {:error, "Some error"} == Connection.recv(connection)
     end
   end
 end
