@@ -1,8 +1,6 @@
 faktory_test:
   container_name: faktory_worker_test
   image: contribsys/faktory
-  environment:
-    - FAKTORY_PASSWORD=
   ports:
     - "7420:7420"
     - "7419:7419"
