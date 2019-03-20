@@ -14,9 +14,13 @@ defmodule FaktoryWorker.Protocol do
   @spec decode_response(response :: String.t()) :: {:ok, term()} | {:error, term()}
   def decode_response("+HI " <> rest) do
     rest
-    |> String.trim_trailing("\r\n")
+    |> trim_newline()
     |> Jason.decode()
   end
 
   def decode_response("+OK\r\n"), do: {:ok, "OK"}
+
+  def decode_response("-ERR " <> rest), do: {:error, trim_newline(rest)}
+
+  def trim_newline(str), do: String.trim_trailing(str, "\r\n")
 end

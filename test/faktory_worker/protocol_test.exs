@@ -23,5 +23,11 @@ defmodule FaktoryWorker.ProtocolTest do
 
       assert resposne == "OK"
     end
+
+    test "should decode the '-ERR' response" do
+      {:error, resposne} = Protocol.decode_response("-ERR Some error\r\n")
+
+      assert resposne == "Some error"
+    end
   end
 end
