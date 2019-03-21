@@ -13,6 +13,20 @@ defmodule FaktoryWorker.Connection.IntegrationTest do
       assert is_port(connection.socket)
     end
 
+    test "should return a connection to a password protected faktory" do
+      {:ok, %Connection{} = connection} = Connection.open(password: "very-secret", port: 7619)
+
+      assert connection.host == "localhost"
+      assert connection.port == 7619
+      assert connection.socket_handler == FaktoryWorker.Socket.Tcp
+      assert is_port(connection.socket)
+    end
+
+    test "should return an invalid password error when connection to a password protected faktory" do
+      {:error, reason} = Connection.open(password: "wrong-password", port: 7619)
+      assert reason == "Invalid password"
+    end
+
     test "should return error when failing to connect" do
       opts = [host: "non-existent-host"]
       {:error, reason} = Connection.open(opts)

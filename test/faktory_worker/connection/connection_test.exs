@@ -33,6 +33,37 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       assert connection.socket == :test_socket
     end
 
+    test "should support connecting to a password protected faktory server" do
+      expected_hello_command =
+        "HELLO {\"pwdhash\":\"b8735599d9a3747a180d8db1e4ca5e3e2079d6eb0c19ab637b4145c9dccb9958\",\"v\":2}\r\n"
+
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port ->
+        {:ok,
+         %FaktoryWorker.Connection{
+           host: host,
+           port: port,
+           socket: :test_socket,
+           socket_handler: FaktoryWorker.SocketMock
+         }}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+HI {\"v\":2,\"i\":7042,\"s\":\"1a02070f169c1121\"}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^expected_hello_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [password: "some-password", socket_handler: FaktoryWorker.SocketMock]
+
+      assert {:ok, %Connection{}} = Connection.open(opts)
+    end
+
     test "should return an error if the returned faktory version is not supported" do
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
@@ -81,7 +112,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
         socket_handler: FaktoryWorker.SocketMock
       }
 
-      assert :called_handler == Connection.send_command(connection, {:hello, 1})
+      assert :called_handler == Connection.send_command(connection, {:hello, %{v: 1}})
     end
   end
 
