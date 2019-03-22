@@ -3,6 +3,8 @@ defmodule FaktoryWorker.Connection.IntegrationTest do
 
   alias FaktoryWorker.Connection
 
+  @passworded_credentials Application.get_env(:faktory_worker, :server_passworded)
+
   describe "open/1" do
     test "should return a connection to faktory" do
       {:ok, %Connection{} = connection} = Connection.open()
@@ -14,16 +16,17 @@ defmodule FaktoryWorker.Connection.IntegrationTest do
     end
 
     test "should return a connection to a password protected faktory" do
-      {:ok, %Connection{} = connection} = Connection.open(password: "very-secret", port: 7619)
+      {:ok, %Connection{} = connection} =
+        Connection.open([password: "very-secret"] ++ @passworded_credentials)
 
-      assert connection.host == "localhost"
-      assert connection.port == 7619
+      assert connection.host == @passworded_credentials[:host]
+      assert connection.port == @passworded_credentials[:port]
       assert connection.socket_handler == FaktoryWorker.Socket.Tcp
       assert is_port(connection.socket)
     end
 
     test "should return an invalid password error when connection to a password protected faktory" do
-      {:error, reason} = Connection.open(password: "wrong-password", port: 7619)
+      {:error, reason} = Connection.open([password: "wrong-password"] ++ @passworded_credentials)
       assert reason == "Invalid password"
     end
 

@@ -6,7 +6,7 @@ faktory_test:
     - "7419:7419"
 faktory_password_test:
   container_name: faktory_worker_password_test
-  image: contribsys/faktory
+  image: contribsys/faktory:0.9.6
   ports:
     - "7620:7420"
     - "7619:7419"
