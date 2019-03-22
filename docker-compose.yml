@@ -1,6 +1,6 @@
 faktory_test:
   container_name: faktory_worker_test
-  image: contribsys/faktory
+  image: contribsys/faktory:0.9.6
   ports:
     - "7420:7420"
     - "7419:7419"

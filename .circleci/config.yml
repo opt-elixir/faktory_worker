@@ -1,11 +1,27 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+executors:
+  execute:
+    parameters:
+      faktory_version:
+        description: "Faktory version number"
+        default: latest
+        type: string
     docker:
       - image: circleci/elixir:1.8
-      - image: contribsys/faktory:0.9.6
+      - image: contribsys/faktory:<<parameters.faktory_version>>
 
     working_directory: ~/repo
+
+jobs:
+  build:
+    parameters:
+      faktory_version:
+        description: "Faktory version number"
+        default: latest
+        type: string
+    executor:
+      name: execute
+      faktory_version: <<parameters.faktory_version>>
     steps:
       - checkout
 
@@ -14,3 +30,16 @@ jobs:
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --check-formatted
       - run: mix test
+
+workflows:
+  build:
+    jobs:
+      - build:
+          faktory_version: "0.9.6"
+          name: "0.9.6"
+      - build:
+          faktory_version: "0.9.7"
+          name: "0.9.7"
+      - build:
+          faktory_version: "latest"
+          name: "latest"
