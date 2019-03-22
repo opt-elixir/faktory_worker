@@ -3,7 +3,7 @@ defmodule FaktoryWorker.ConnectionHelpers do
 
   defmacro connection_mox() do
     quote do
-      expect(FaktoryWorker.SocketMock, :connect, fn host, port ->
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _opts ->
         {:ok,
          %FaktoryWorker.Connection{
            host: host,

@@ -2,7 +2,7 @@ defmodule FaktoryWorker.Connection do
   @moduledoc false
 
   alias FaktoryWorker.Connection
-  alias FaktoryWorker.Socket.Tcp
+  alias FaktoryWorker.Socket.{Tcp, Ssl}
   alias FaktoryWorker.Protocol
 
   @faktory_version 2
@@ -14,12 +14,13 @@ defmodule FaktoryWorker.Connection do
 
   @spec open(opts :: keyword()) :: {:ok, Connection.t()} | {:error, term()}
   def open(opts \\ []) do
-    socket_handler = Keyword.get(opts, :socket_handler, Tcp)
+    use_tls = Keyword.get(opts, :use_tls, false)
+    socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
     host = Keyword.get(opts, :host, "localhost")
     port = Keyword.get(opts, :port, 7419)
     password = Keyword.get(opts, :password)
 
-    with {:ok, connection} <- socket_handler.connect(host, port),
+    with {:ok, connection} <- socket_handler.connect(host, port, opts),
          :ok <- verify_handshake(connection, password) do
       {:ok, connection}
     end
@@ -80,4 +81,7 @@ defmodule FaktoryWorker.Connection do
   end
 
   defp append_password_hash(args, _, _), do: args
+
+  defp default_socket_handler(true), do: Ssl
+  defp default_socket_handler(_), do: Tcp
 end

@@ -37,7 +37,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       expected_hello_command =
         "HELLO {\"pwdhash\":\"b8735599d9a3747a180d8db1e4ca5e3e2079d6eb0c19ab637b4145c9dccb9958\",\"v\":2}\r\n"
 
-      expect(FaktoryWorker.SocketMock, :connect, fn host, port ->
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _ ->
         {:ok,
          %FaktoryWorker.Connection{
            host: host,
@@ -67,7 +67,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
     test "should return an error if the returned faktory version is not supported" do
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
-      expect(FaktoryWorker.SocketMock, :connect, fn host, port ->
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _opts ->
         {:ok,
          %Connection{
            host: host,
@@ -89,7 +89,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
     test "should return a socket error" do
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
-      expect(FaktoryWorker.SocketMock, :connect, fn _, _ ->
+      expect(FaktoryWorker.SocketMock, :connect, fn _, _, _ ->
         {:error, :econnrefused}
       end)
 

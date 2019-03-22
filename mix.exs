@@ -23,6 +23,7 @@ defmodule FaktoryWorker.MixProject do
 
   defp deps do
     [
+      {:certifi, "~> 2.5"},
       {:jason, "~> 1.1"},
       {:mox, "~> 0.5", only: :test}
     ]
