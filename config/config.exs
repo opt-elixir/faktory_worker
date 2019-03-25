@@ -2,6 +2,18 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+if Mix.env() == :test do
+  if System.get_env("CI") do
+    config :faktory_worker, :server_passworded,
+      host: "faktory_password",
+      port: 7419
+  else
+    config :faktory_worker, :server_passworded,
+      host: "localhost",
+      port: 7619
+  end
+end
+
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,

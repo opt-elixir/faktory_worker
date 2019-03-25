@@ -9,6 +9,10 @@ executors:
     docker:
       - image: circleci/elixir:1.8
       - image: contribsys/faktory:<<parameters.faktory_version>>
+      - image: contribsys/faktory:<<parameters.faktory_version>>
+        name: faktory_password
+        environment:
+          - FAKTORY_PASSWORD=very-secret
 
     working_directory: ~/repo
 

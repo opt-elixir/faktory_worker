@@ -5,7 +5,7 @@ defmodule FaktoryWorker.ProtocolTest do
 
   describe "encode_command/1" do
     test "should encode the 'HELLO' command" do
-      {:ok, command} = Protocol.encode_command({:hello, 2})
+      {:ok, command} = Protocol.encode_command({:hello, %{v: 2}})
 
       assert command == "HELLO {\"v\":2}\r\n"
     end
