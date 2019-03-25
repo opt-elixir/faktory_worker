@@ -37,8 +37,8 @@ defmodule FaktoryWorker.Connection.IntegrationTest do
       {:ok, %Connection{} = connection} =
         Connection.open([use_tls: true, tls_verify: false] ++ @tls_connection_opts)
 
-      assert connection.host == "localhost"
-      assert connection.port == 7519
+      assert connection.host == @tls_connection_opts[:host]
+      assert connection.port == @tls_connection_opts[:port]
       assert connection.socket_handler == FaktoryWorker.Socket.Ssl
 
       {:sslsocket, {_, socket_port, :tls_connection, _}, _} = connection.socket
