@@ -35,7 +35,11 @@ jobs:
       - run: mix local.hex --force
       - run: mix do deps.get, compile --warnings-as-errors
       - run: mix format --check-formatted
-      - run: mix test
+      - run: MIX_ENV=test mix do coveralls.json
+      - run:
+          name: Codecov
+          command: |
+            bash <(curl -s https://codecov.io/bash)
 
 workflows:
   build:

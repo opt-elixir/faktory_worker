@@ -8,6 +8,7 @@ defmodule FaktoryWorker.MixProject do
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [tool: ExCoveralls],
       deps: deps()
     ]
   end
@@ -24,6 +25,7 @@ defmodule FaktoryWorker.MixProject do
   defp deps do
     [
       {:certifi, "~> 2.5"},
+      {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
       {:mox, "~> 0.5", only: :test}
     ]
