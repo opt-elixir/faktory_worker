@@ -24,9 +24,11 @@ defmodule FaktoryWorker.MixProject do
 
   defp deps do
     [
+      {:broadway, "~> 0.1.0"},
       {:certifi, "~> 2.5"},
       {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
+      {:poolboy, "~> 1.5"},
       {:mox, "~> 0.5", only: :test}
     ]
   end
