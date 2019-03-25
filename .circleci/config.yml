@@ -13,6 +13,8 @@ executors:
         name: faktory_password
         environment:
           - FAKTORY_PASSWORD=very-secret
+      - image: acjensen/faktory-tls
+        name: faktory_tls
 
     working_directory: ~/repo
 

@@ -4,6 +4,14 @@ faktory_test:
   ports:
     - "7420:7420"
     - "7419:7419"
+
+faktory_test_tls:
+  container_name: faktory_worker_test_tls
+  image: acjensen/faktory-tls
+  ports:
+    - "7520:7420"
+    - "7519:7419"
+
 faktory_password_test:
   container_name: faktory_worker_password_test
   image: contribsys/faktory:0.9.6

@@ -6,7 +6,7 @@ defmodule FaktoryWorker.Socket.Tcp do
   @behaviour FaktoryWorker.Socket
 
   @impl true
-  def connect(host, port) do
+  def connect(host, port, _opts \\ []) do
     with {:ok, socket} <- try_connect(host, port) do
       {:ok, %Connection{host: host, port: port, socket: socket, socket_handler: __MODULE__}}
     end

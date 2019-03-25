@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Socket do
 
   alias FaktoryWorker.Connection
 
-  @callback connect(host :: String.t(), port :: pos_integer()) ::
+  @callback connect(host :: String.t(), port :: pos_integer(), opts :: keyword()) ::
               {:ok, Connection.t()} | {:error, term()}
 
   @callback send(connection :: Connection.t(), payload :: String.t()) ::
