@@ -29,6 +29,7 @@ defmodule FaktoryWorker.Socket.Ssl do
     opts = [
       :binary,
       active: false,
+      packet: :line,
       versions: [:"tlsv1.2"],
       verify: map_tls_verify(tls_verify),
       cacerts: :certifi.cacerts()
