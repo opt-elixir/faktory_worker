@@ -21,22 +21,22 @@ defmodule FaktoryWorker.Connection do
     password = Keyword.get(opts, :password)
 
     with {:ok, connection} <- socket_handler.connect(host, port, opts),
-         :ok <- verify_handshake(connection, password) do
+         {:ok, _} <- verify_handshake(connection, password) do
       {:ok, connection}
     end
   end
 
   @spec send_command(connection :: Connection.t(), Protocol.protocol_command()) ::
-          :ok | {:error, term()}
+          {:ok, String.t()} | {:error, term()}
   def send_command(%{socket_handler: socket_handler} = connection, command) do
-    case Protocol.encode_command(command) do
-      {:ok, payload} -> socket_handler.send(connection, payload)
-      {:error, _} = error -> error
+    with {:ok, payload} <- Protocol.encode_command(command),
+         :ok <- socket_handler.send(connection, payload),
+         {:ok, _} = response <- recv(connection) do
+      response
     end
   end
 
-  @spec recv(connection :: Connection.t()) :: {:ok, term()} | {:error, term()}
-  def recv(%{socket_handler: socket_handler} = connection) do
+  defp recv(%{socket_handler: socket_handler} = connection) do
     case socket_handler.recv(connection) do
       {:ok, response} -> Protocol.decode_response(response)
       {:error, _} = error -> error
@@ -61,10 +61,7 @@ defmodule FaktoryWorker.Connection do
       %{v: @faktory_version}
       |> append_password_hash(response, password)
 
-    with :ok <- send_command(connection, {:hello, args}),
-         {:ok, "OK"} <- recv(connection) do
-      :ok
-    end
+    send_command(connection, {:hello, args})
   end
 
   defp send_handshake({:error, _} = error, _, _), do: error

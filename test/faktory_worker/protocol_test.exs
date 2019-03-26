@@ -9,6 +9,17 @@ defmodule FaktoryWorker.ProtocolTest do
 
       assert command == "HELLO {\"v\":2}\r\n"
     end
+
+    test "should encode the 'PUSH' command" do
+      {:ok, command} =
+        Protocol.encode_command(
+          {:push,
+           %{jid: "123456", jobtype: "TestJob", queue: "test_queue", args: [%{some: "values"}]}}
+        )
+
+      assert command ==
+               "PUSH {\"args\":[{\"some\":\"values\"}],\"jid\":\"123456\",\"jobtype\":\"TestJob\",\"queue\":\"test_queue\"}\r\n"
+    end
   end
 
   describe "decode_response/1" do

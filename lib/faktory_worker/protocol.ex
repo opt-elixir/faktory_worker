@@ -1,11 +1,15 @@
 defmodule FaktoryWorker.Protocol do
   @moduledoc false
 
-  @type protocol_command :: {:hello, map()}
+  @type protocol_command :: {:hello, map()} | {:push, map()}
 
   @spec encode_command(command :: protocol_command()) :: {:ok, String.t()} | {:error, term()}
   def encode_command({:hello, args}) do
     encode("HELLO", args)
+  end
+
+  def encode_command({:push, args}) do
+    encode("PUSH", args)
   end
 
   @spec decode_response(response :: String.t()) :: {:ok, term()} | {:error, term()}
