@@ -3,6 +3,16 @@ defmodule FaktoryWorker.Job do
   todo: docs
   """
 
+  # Look at supporting the following optional fields when pushing a job
+  # priority
+  # reserve_for
+  # at
+  # retry
+  # backtrace
+  # created_at
+  # custom
+  @optional_job_fields [:queue]
+
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
 
@@ -16,24 +26,15 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(worker_module, job, opts) when is_list(job) do
-    # maybe use opts to support these optional fields
-    # priority
-    # reserve_for
-    # at
-    # retry
-    # backtrace
-    # created_at
-    # custom
-
     pipeline_name = push_pipeline_name(opts)
 
-    args = %{
-      jid: random_job_id(),
-      jobtype: job_type_for_module(worker_module),
-      args: job,
-      # support default queues
-      queue: opts[:queue]
-    }
+    args =
+      %{
+        jid: random_job_id(),
+        jobtype: job_type_for_module(worker_module),
+        args: job
+      }
+      |> append_optional_fields(opts)
 
     message = %Broadway.Message{
       acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
@@ -45,6 +46,15 @@ defmodule FaktoryWorker.Job do
 
   def perform_async(queue, job, opts) do
     perform_async(queue, [job], opts)
+  end
+
+  defp append_optional_fields(args, opts) do
+    Enum.reduce(@optional_job_fields, args, fn field, args ->
+      case Keyword.get(opts, field) do
+        nil -> args
+        value -> Map.put(args, field, value)
+      end
+    end)
   end
 
   defp push_pipeline_name(opts) do
