@@ -4,7 +4,7 @@ defmodule FaktoryWorker.PushPipeline.Acknowledger do
   @behaviour Broadway.Acknowledger
 
   @impl true
-  def ack(_ack_ref, successful_messages, failed_messages) do
+  def ack(_ack_ref, _successful_messages, _failed_messages) do
     # need to work out what this should do
     :ok
   end

@@ -20,6 +20,12 @@ defmodule FaktoryWorker.ProtocolTest do
       assert command ==
                "PUSH {\"args\":[{\"some\":\"values\"}],\"jid\":\"123456\",\"jobtype\":\"TestJob\",\"queue\":\"test_queue\"}\r\n"
     end
+
+    test "should encode the 'INFO' command" do
+      {:ok, command} = Protocol.encode_command(:info)
+
+      assert command == "INFO\r\n"
+    end
   end
 
   describe "decode_response/1" do
@@ -39,6 +45,21 @@ defmodule FaktoryWorker.ProtocolTest do
       {:error, resposne} = Protocol.decode_response("-ERR Some error\r\n")
 
       assert resposne == "Some error"
+    end
+
+    test "should decode the '$n' bulk string response" do
+      {:ok, resposne} = Protocol.decode_response("$592\r\n")
+
+      assert resposne == {:bulk_string, 594}
+    end
+
+    test "should decode bulk string response" do
+      {:ok, response} = Protocol.decode_response("{\"some\":\"longer\",\"response\":\"data\"}")
+
+      assert response == %{
+               "response" => "data",
+               "some" => "longer"
+             }
     end
   end
 end

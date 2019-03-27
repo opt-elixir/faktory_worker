@@ -22,9 +22,20 @@ defmodule FaktoryWorker.Socket.Tcp do
     :gen_tcp.recv(socket, 0)
   end
 
+  @impl true
+  def recv(%{socket: socket}, length) do
+    set_packet_mode(socket, :raw)
+    result = :gen_tcp.recv(socket, length)
+    set_packet_mode(socket, :line)
+
+    result
+  end
+
   defp try_connect(host, port) do
     host = String.to_charlist(host)
 
     :gen_tcp.connect(host, port, [:binary, active: false, packet: :line])
   end
+
+  defp set_packet_mode(socket, mode), do: :inet.setopts(socket, packet: mode)
 end

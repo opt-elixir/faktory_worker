@@ -37,11 +37,28 @@ defmodule FaktoryWorker.Connection do
   end
 
   defp recv(%{socket_handler: socket_handler} = connection) do
-    case socket_handler.recv(connection) do
-      {:ok, response} -> Protocol.decode_response(response)
-      {:error, _} = error -> error
+    connection
+    |> socket_handler.recv()
+    |> decode_response(connection)
+  end
+
+  defp recv(%{socket_handler: socket_handler} = connection, length) do
+    connection
+    |> socket_handler.recv(length)
+    |> decode_response(connection)
+  end
+
+  defp decode_response({:ok, response}, connection) do
+    case Protocol.decode_response(response) do
+      {:ok, {:bulk_string, len}} ->
+        recv(connection, len)
+
+      result ->
+        result
     end
   end
+
+  defp decode_response({:error, _} = error, _), do: error
 
   defp verify_handshake(connection, password) do
     connection

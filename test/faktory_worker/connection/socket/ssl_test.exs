@@ -52,4 +52,14 @@ defmodule FaktoryWorker.Connection.Socket.SslTest do
       assert result == "+HI {\"v\":2}\r\n"
     end
   end
+
+  describe "recv/2" do
+    test "should be able to receive a raw packet from faktory" do
+      opts = [tls_verify: false]
+      {:ok, %Connection{} = connection} = Ssl.connect(@tls_host, @tls_port, opts)
+      {:ok, result} = Ssl.recv(connection, 13)
+
+      assert result == "+HI {\"v\":2}\r\n"
+    end
+  end
 end

@@ -114,5 +114,28 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
 
       assert :called_handler == Connection.send_command(connection, {:hello, %{v: 1}})
     end
+
+    test "should receive the result of a bulk string response from faktory" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "INFO\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$37\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _, 39 ->
+        {:ok, "{\"some\":\"longer\",\"response\":\"data\"}\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:ok, connection} = Connection.open(opts)
+      {:ok, result} = Connection.send_command(connection, :info)
+
+      assert result == %{"response" => "data", "some" => "longer"}
+    end
   end
 end
