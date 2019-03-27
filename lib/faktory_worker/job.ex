@@ -21,7 +21,7 @@ defmodule FaktoryWorker.Job do
         opts = Keyword.merge(unquote(using_opts), opts)
 
         __MODULE__
-        |> Job.create_job(job, opts)
+        |> Job.build_payload(job, opts)
         |> Job.perform_async(opts)
       end
     end

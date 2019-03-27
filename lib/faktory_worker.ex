@@ -5,8 +5,7 @@ defmodule FaktoryWorker do
 
   @doc false
   def child_spec(opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    opts = Keyword.put(opts, :name, name)
+    opts = Keyword.put_new(opts, :name, __MODULE__)
 
     children = [
       {FaktoryWorker.Pool, opts},
@@ -14,7 +13,7 @@ defmodule FaktoryWorker do
     ]
 
     %{
-      id: name,
+      id: opts[:name],
       type: :supervisor,
       start: {Supervisor, :start_link, [children, [strategy: :one_for_one]]}
     }

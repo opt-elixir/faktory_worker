@@ -5,6 +5,8 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
 
   @behaviour Broadway
 
+  @default_timeout 5000
+
   @impl true
   def handle_message(_processor_name, message, _context), do: message
 
@@ -15,7 +17,7 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
       |> Pool.format_pool_name()
       |> :poolboy.transaction(
         &ConnectionManager.send_command(&1, {:push, job}),
-        5000
+        @default_timeout
       )
       |> send_command_result()
 
