@@ -1,6 +1,6 @@
 faktory_test:
   container_name: faktory_worker_test
-  image: contribsys/faktory:0.9.6
+  image: contribsys/faktory:0.9.7
   ports:
     - "7420:7420"
     - "7419:7419"
@@ -14,7 +14,7 @@ faktory_test_tls:
 
 faktory_password_test:
   container_name: faktory_worker_password_test
-  image: contribsys/faktory:0.9.6
+  image: contribsys/faktory:0.9.7
   ports:
     - "7620:7420"
     - "7619:7419"
