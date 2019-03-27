@@ -26,6 +26,12 @@ defmodule FaktoryWorker.ProtocolTest do
 
       assert command == "INFO\r\n"
     end
+
+    test "should return an error when attempting to encode bad data" do
+      {:error, reason} = Protocol.encode_command({:hello, {:v, 2}})
+
+      assert reason == "Invalid command args '{:v, 2}' given and could not be encoded"
+    end
   end
 
   describe "decode_response/1" do

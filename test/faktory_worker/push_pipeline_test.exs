@@ -1,10 +1,12 @@
 defmodule FaktoryWorker.PushPipelineTest do
   use ExUnit.Case
 
+  alias FaktoryWorker.PushPipeline
+
   describe "child_spec/1" do
     test "should return a default child_spec" do
       opts = [name: FaktoryWorker]
-      child_spec = FaktoryWorker.PushPipeline.child_spec(opts)
+      child_spec = PushPipeline.child_spec(opts)
 
       assert child_spec == default_child_spec()
     end
@@ -14,7 +16,7 @@ defmodule FaktoryWorker.PushPipelineTest do
         name: :my_test_faktory
       ]
 
-      child_spec = FaktoryWorker.PushPipeline.child_spec(opts)
+      child_spec = PushPipeline.child_spec(opts)
       config = get_child_spec_config(child_spec)
 
       assert config[:name] == :my_test_faktory
@@ -28,7 +30,7 @@ defmodule FaktoryWorker.PushPipelineTest do
         ]
       ]
 
-      child_spec = FaktoryWorker.PushPipeline.child_spec(opts)
+      child_spec = PushPipeline.child_spec(opts)
       config = get_child_spec_config(child_spec)
 
       assert config[:pool][:size] == 25
@@ -43,6 +45,12 @@ defmodule FaktoryWorker.PushPipelineTest do
       assert pid == Process.whereis(FaktoryWorker_pipeline)
 
       :ok = stop_supervised(FaktoryWorker.PushPipeline)
+    end
+  end
+
+  describe "format_pipeline_name/1" do
+    test "should append a suffix to the given name" do
+      assert :my_test_pipeline == PushPipeline.format_pipeline_name(:my_test)
     end
   end
 

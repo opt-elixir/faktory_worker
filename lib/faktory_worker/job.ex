@@ -19,33 +19,38 @@ defmodule FaktoryWorker.Job do
     quote do
       def perform_async(job, opts \\ []) do
         opts = Keyword.merge(unquote(using_opts), opts)
-        Job.perform_async(__MODULE__, job, opts)
+
+        __MODULE__
+        |> Job.create_job(job, opts)
+        |> Job.perform_async(opts)
       end
     end
   end
 
   @doc false
-  def perform_async(worker_module, job, opts) when is_list(job) do
-    pipeline_name = push_pipeline_name(opts)
+  def build_payload(worker_module, job, opts) when is_list(job) do
+    %{
+      jid: random_job_id(),
+      jobtype: job_type_for_module(worker_module),
+      args: job
+    }
+    |> append_optional_fields(opts)
+  end
 
-    args =
-      %{
-        jid: random_job_id(),
-        jobtype: job_type_for_module(worker_module),
-        args: job
-      }
-      |> append_optional_fields(opts)
+  def build_payload(worker_module, job, opts) do
+    build_payload(worker_module, [job], opts)
+  end
+
+  @doc false
+  def perform_async(payload, opts) do
+    pipeline_name = push_pipeline_name(opts)
 
     message = %Broadway.Message{
       acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-      data: args
+      data: payload
     }
 
     Broadway.push_messages(pipeline_name, [message])
-  end
-
-  def perform_async(queue, job, opts) do
-    perform_async(queue, [job], opts)
   end
 
   defp append_optional_fields(args, opts) do

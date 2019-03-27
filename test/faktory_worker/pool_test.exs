@@ -1,10 +1,12 @@
 defmodule FaktoryWorker.PoolTest do
   use ExUnit.Case
 
+  alias FaktoryWorker.Pool
+
   describe "child_spec/1" do
     test "should return a default child_spec" do
       opts = [name: FaktoryWorker]
-      child_spec = FaktoryWorker.Pool.child_spec(opts)
+      child_spec = Pool.child_spec(opts)
 
       assert child_spec == default_child_spec()
     end
@@ -14,7 +16,7 @@ defmodule FaktoryWorker.PoolTest do
         name: :my_test_faktory
       ]
 
-      child_spec = FaktoryWorker.Pool.child_spec(opts)
+      child_spec = Pool.child_spec(opts)
       config = get_child_spec_config(child_spec)
 
       assert config[:name] == {:local, :my_test_faktory_pool}
@@ -28,11 +30,17 @@ defmodule FaktoryWorker.PoolTest do
         ]
       ]
 
-      child_spec = FaktoryWorker.Pool.child_spec(opts)
+      child_spec = Pool.child_spec(opts)
       config = get_child_spec_config(child_spec)
 
       assert config[:size] == 25
       assert config[:max_overflow] == 25
+    end
+  end
+
+  describe "format_pool_name/1" do
+    test "should append a suffix to the given name" do
+      assert :my_test_pool == Pool.format_pool_name(:my_test)
     end
   end
 

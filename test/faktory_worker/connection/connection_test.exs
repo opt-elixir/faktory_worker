@@ -137,5 +137,45 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
 
       assert result == %{"response" => "data", "some" => "longer"}
     end
+
+    test "should return an error if there was a socket connection issue" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "INFO\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:ok, connection} = Connection.open(opts)
+
+      assert {:error, :closed} == Connection.send_command(connection, :info)
+    end
+
+    test "should return an error if an error occurs during the connection handshake" do
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _opts ->
+        {:ok,
+         %FaktoryWorker.Connection{
+           host: host,
+           port: port,
+           socket: :test_socket,
+           socket_handler: FaktoryWorker.SocketMock
+         }}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "-ERR Something went wrong\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:error, reason} = Connection.open(opts)
+
+      assert reason == "Something went wrong"
+    end
   end
 end

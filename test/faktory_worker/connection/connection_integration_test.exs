@@ -1,4 +1,4 @@
-defmodule FaktoryWorker.Connection.IntegrationTest do
+defmodule FaktoryWorker.Connection.ConnectionIntegrationTest do
   use ExUnit.Case, async: true
 
   alias FaktoryWorker.Connection

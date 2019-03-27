@@ -49,8 +49,11 @@ defmodule FaktoryWorker.Protocol do
 
   defp encode(command, args) do
     case Jason.encode(args) do
-      {:ok, payload} -> {:ok, "#{command} #{payload}\r\n"}
-      error -> error
+      {:ok, payload} ->
+        {:ok, "#{command} #{payload}\r\n"}
+
+      {:error, _} ->
+        {:error, "Invalid command args '#{inspect(args)}' given and could not be encoded"}
     end
   end
 
