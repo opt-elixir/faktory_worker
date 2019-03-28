@@ -21,27 +21,44 @@ defmodule FaktoryWorker.Connection do
     password = Keyword.get(opts, :password)
 
     with {:ok, connection} <- socket_handler.connect(host, port, opts),
-         :ok <- verify_handshake(connection, password) do
+         {:ok, _} <- verify_handshake(connection, password) do
       {:ok, connection}
     end
   end
 
   @spec send_command(connection :: Connection.t(), Protocol.protocol_command()) ::
-          :ok | {:error, term()}
+          {:ok, String.t()} | {:error, term()}
   def send_command(%{socket_handler: socket_handler} = connection, command) do
-    case Protocol.encode_command(command) do
-      {:ok, payload} -> socket_handler.send(connection, payload)
-      {:error, _} = error -> error
+    with {:ok, payload} <- Protocol.encode_command(command),
+         :ok <- socket_handler.send(connection, payload),
+         {:ok, _} = response <- recv(connection) do
+      response
     end
   end
 
-  @spec recv(connection :: Connection.t()) :: {:ok, term()} | {:error, term()}
-  def recv(%{socket_handler: socket_handler} = connection) do
-    case socket_handler.recv(connection) do
-      {:ok, response} -> Protocol.decode_response(response)
-      {:error, _} = error -> error
+  defp recv(%{socket_handler: socket_handler} = connection) do
+    connection
+    |> socket_handler.recv()
+    |> decode_response(connection)
+  end
+
+  defp recv(%{socket_handler: socket_handler} = connection, length) do
+    connection
+    |> socket_handler.recv(length)
+    |> decode_response(connection)
+  end
+
+  defp decode_response({:ok, response}, connection) do
+    case Protocol.decode_response(response) do
+      {:ok, {:bulk_string, len}} ->
+        recv(connection, len)
+
+      result ->
+        result
     end
   end
+
+  defp decode_response({:error, _} = error, _), do: error
 
   defp verify_handshake(connection, password) do
     connection
@@ -61,10 +78,7 @@ defmodule FaktoryWorker.Connection do
       %{v: @faktory_version}
       |> append_password_hash(response, password)
 
-    with :ok <- send_command(connection, {:hello, args}),
-         {:ok, "OK"} <- recv(connection) do
-      :ok
-    end
+    send_command(connection, {:hello, args})
   end
 
   defp send_handshake({:error, _} = error, _, _), do: error

@@ -22,6 +22,15 @@ defmodule FaktoryWorker.Socket.Ssl do
     :ssl.recv(socket, 0)
   end
 
+  @impl true
+  def recv(%{socket: socket}, length) do
+    set_packet_mode(socket, :raw)
+    result = :ssl.recv(socket, length)
+    set_packet_mode(socket, :line)
+
+    result
+  end
+
   defp try_connect(host, port, opts) do
     host = String.to_charlist(host)
     tls_verify = Keyword.get(opts, :tls_verify, true)
@@ -40,4 +49,6 @@ defmodule FaktoryWorker.Socket.Ssl do
 
   defp map_tls_verify(true), do: :verify_peer
   defp map_tls_verify(_), do: :verify_none
+
+  defp set_packet_mode(socket, mode), do: :ssl.setopts(socket, packet: mode)
 end

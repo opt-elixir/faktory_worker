@@ -114,37 +114,68 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
 
       assert :called_handler == Connection.send_command(connection, {:hello, %{v: 1}})
     end
-  end
 
-  describe "recv/1" do
-    test "should call into the socket handler" do
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
+    test "should receive the result of a bulk string response from faktory" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "INFO\r\n" ->
+        :ok
       end)
 
-      connection = %Connection{
-        host: "localhost",
-        port: 1234,
-        socket: :test_socket,
-        socket_handler: FaktoryWorker.SocketMock
-      }
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$37\r\n"}
+      end)
 
-      assert {:ok, "OK"} == Connection.recv(connection)
+      expect(FaktoryWorker.SocketMock, :recv, fn _, 39 ->
+        {:ok, "{\"some\":\"longer\",\"response\":\"data\"}\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:ok, connection} = Connection.open(opts)
+      {:ok, result} = Connection.send_command(connection, :info)
+
+      assert result == %{"response" => "data", "some" => "longer"}
     end
 
-    test "should return faktory error" do
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "-ERR Some error\r\n"}
+    test "should return an error if there was a socket connection issue" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "INFO\r\n" ->
+        :ok
       end)
 
-      connection = %Connection{
-        host: "localhost",
-        port: 1234,
-        socket: :test_socket,
-        socket_handler: FaktoryWorker.SocketMock
-      }
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
 
-      assert {:error, "Some error"} == Connection.recv(connection)
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:ok, connection} = Connection.open(opts)
+
+      assert {:error, :closed} == Connection.send_command(connection, :info)
+    end
+
+    test "should return an error if an error occurs during the connection handshake" do
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _opts ->
+        {:ok,
+         %FaktoryWorker.Connection{
+           host: host,
+           port: port,
+           socket: :test_socket,
+           socket_handler: FaktoryWorker.SocketMock
+         }}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "-ERR Something went wrong\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      {:error, reason} = Connection.open(opts)
+
+      assert reason == "Something went wrong"
     end
   end
 end

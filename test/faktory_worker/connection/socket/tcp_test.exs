@@ -44,4 +44,13 @@ defmodule FaktoryWorker.Connection.Socket.TcpTest do
       assert result == "+HI {\"v\":2}\r\n"
     end
   end
+
+  describe "recv/2" do
+    test "should be able to receive a raw packet from faktory" do
+      {:ok, %Connection{} = connection} = Tcp.connect("localhost", 7419)
+      {:ok, result} = Tcp.recv(connection, 13)
+
+      assert result == "+HI {\"v\":2}\r\n"
+    end
+  end
 end

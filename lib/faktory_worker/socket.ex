@@ -10,4 +10,7 @@ defmodule FaktoryWorker.Socket do
               :ok | {:error, term()}
 
   @callback recv(connection :: Connection.t()) :: {:ok, String.t()} | {:error, term()}
+
+  @callback recv(connection :: Connection.t(), length :: pos_integer()) ::
+              {:ok, String.t()} | {:error, term()}
 end
