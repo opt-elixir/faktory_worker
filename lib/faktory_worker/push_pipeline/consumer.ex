@@ -16,7 +16,7 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
       name
       |> Pool.format_pool_name()
       |> :poolboy.transaction(
-        &ConnectionManager.send_command(&1, {:push, job}),
+        &ConnectionManager.Server.send_command(&1, {:push, job}),
         @default_timeout
       )
       |> send_command_result()

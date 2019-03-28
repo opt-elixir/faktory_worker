@@ -50,7 +50,7 @@ defmodule FaktoryWorker.PoolTest do
       [
         [
           name: {:local, FaktoryWorker_pool},
-          worker_module: FaktoryWorker.ConnectionManager,
+          worker_module: FaktoryWorker.ConnectionManager.Server,
           size: 10,
           max_overflow: 10
         ],

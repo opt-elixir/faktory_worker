@@ -10,7 +10,7 @@ defmodule FaktoryWorker.Pool do
       pool_name,
       [
         {:name, {:local, pool_name}},
-        {:worker_module, FaktoryWorker.ConnectionManager},
+        {:worker_module, FaktoryWorker.ConnectionManager.Server},
         {:size, Keyword.get(pool_config, :size, 10)},
         {:max_overflow, Keyword.get(pool_config, :size, 10)}
       ],
