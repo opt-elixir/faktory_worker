@@ -43,11 +43,16 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(payload, opts) do
-    pipeline_name = push_pipeline_name(opts)
+    opts
+    |> push_pipeline_name()
+    |> perform_async(payload, opts)
+  end
 
+  @doc false
+  def perform_async(pipeline_name, payload, _opts) do
     message = %Broadway.Message{
       acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-      data: payload
+      data: {pipeline_name, payload}
     }
 
     Broadway.push_messages(pipeline_name, [message])

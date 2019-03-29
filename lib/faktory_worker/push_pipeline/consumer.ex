@@ -11,7 +11,7 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
   def handle_message(_processor_name, message, _context), do: message
 
   @impl true
-  def handle_batch(_, [%{data: job} = message], _batch_info, %{name: name}) do
+  def handle_batch(_, [%{data: {_, job}} = message], _batch_info, %{name: name}) do
     result =
       name
       |> Pool.format_pool_name()
