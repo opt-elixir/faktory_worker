@@ -68,6 +68,10 @@ defmodule FaktoryWorker.ConnectionManagerTest do
         {:error, :closed}
       end)
 
+      expect(FaktoryWorker.SocketMock, :connect, fn _, _, _ ->
+        {:error, :econnrefused}
+      end)
+
       opts = [socket_handler: FaktoryWorker.SocketMock]
       state = ConnectionManager.new(opts)
 
@@ -115,6 +119,45 @@ defmodule FaktoryWorker.ConnectionManagerTest do
 
       assert error == "Failed to connect to Faktory"
       assert state.conn == nil
+    end
+
+    test "should attempt reconnect and resend the command once if the first attemp failed" do
+      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
+        {:error, :closed}
+      end)
+
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+
+      state = %ConnectionManager{
+        opts: opts,
+        conn: %Connection{
+          host: "localhost",
+          port: 7419,
+          socket: :test_socket,
+          socket_handler: FaktoryWorker.SocketMock
+        }
+      }
+
+      {{:ok, result}, state} = ConnectionManager.send_command(state, :info)
+
+      assert result == "OK"
+
+      assert state.conn == %Connection{
+               host: "localhost",
+               port: 7419,
+               socket: :test_socket,
+               socket_handler: FaktoryWorker.SocketMock
+             }
     end
   end
 end

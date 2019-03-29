@@ -19,13 +19,15 @@ defmodule FaktoryWorker.ConnectionManager do
     }
   end
 
-  def send_command(%ConnectionManager{} = state, command) do
+  def send_command(%ConnectionManager{} = state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
         error = {:error, "Failed to connect to Faktory"}
         state = %{state | conn: nil}
 
-        {error, state}
+        if allow_retry,
+          do: send_command(%{state | conn: nil}, command, false),
+          else: {error, state}
 
       {result, state} ->
         {result, state}
