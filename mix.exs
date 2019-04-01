@@ -6,6 +6,8 @@ defmodule FaktoryWorker.MixProject do
       app: :faktory_worker,
       version: "0.1.0",
       elixir: "~> 1.8",
+      description: description(),
+      package: package(),
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
@@ -26,10 +28,24 @@ defmodule FaktoryWorker.MixProject do
     [
       {:broadway, "~> 0.1.0"},
       {:certifi, "~> 2.5"},
+      {:ex_doc, "~> 0.19.3", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
       {:poolboy, "~> 1.5"},
       {:mox, "~> 0.5", only: :test}
+    ]
+  end
+
+  defp description do
+    "A Faktory worker implementation for Elixir"
+  end
+
+  defp package do
+    [
+      name: :faktory_worker,
+      maintainers: ["Stuart Welham", "John Griffin", "Peter Brown"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/SeatedInc/faktory_worker"}
     ]
   end
 end
