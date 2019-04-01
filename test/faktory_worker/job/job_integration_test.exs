@@ -1,6 +1,8 @@
 defmodule FaktoryWorker.JobIntegrationTest do
   use ExUnit.Case
 
+  import FaktoryWorker.FaktoryTestHelpers
+
   alias FaktoryWorker.Job
 
   describe "perform_async/3" do
@@ -23,18 +25,5 @@ defmodule FaktoryWorker.JobIntegrationTest do
 
       :ok = stop_supervised(faktory_name)
     end
-  end
-
-  defp assert_queue_size(queue_name, expected_size) do
-    Process.sleep(20)
-    {:ok, connection} = FaktoryWorker.Connection.open()
-    {:ok, info} = FaktoryWorker.Connection.send_command(connection, :info)
-
-    assert get_in(info, ["faktory", "queues", queue_name]) == expected_size
-  end
-
-  defp random_string() do
-    bytes = :crypto.strong_rand_bytes(12)
-    Base.encode16(bytes)
   end
 end
