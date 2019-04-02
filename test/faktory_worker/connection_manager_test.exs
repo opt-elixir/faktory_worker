@@ -61,6 +61,36 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       assert result == "OK"
     end
 
+    test "should not retry a job that halts" do
+      payload = %{
+        args: [1],
+        jid: "123456",
+        jobtype: "TestJob",
+        queue: "test_queue"
+      }
+
+      json = Jason.encode!(payload)
+      command = "PUSH #{json}\r\n"
+
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, "Halt: job not unique"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+      state = ConnectionManager.new(opts)
+
+      # By receiving :ok, the job will not be retried
+      {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
+
+      assert result == "job not unique"
+    end
+
     test "should unset the connection when there is a socket failure" do
       connection_mox()
 

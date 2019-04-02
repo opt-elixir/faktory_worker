@@ -29,6 +29,11 @@ defmodule FaktoryWorker.ConnectionManager do
           do: send_command(%{state | conn: nil}, command, false),
           else: {error, state}
 
+      # Handle errors from Faktory that should not be tried again, such as
+      # unique jobs.
+      {{:error, "Halt: " <> reason}, state} ->
+        {{:ok, reason}, state}
+
       {result, state} ->
         {result, state}
     end
