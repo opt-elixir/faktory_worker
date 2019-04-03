@@ -4,6 +4,8 @@ defmodule FaktoryWorker.ConnectionManager do
   alias FaktoryWorker.Connection
   alias FaktoryWorker.ConnectionManager
 
+  require Logger
+
   @connection_errors [
     :closed,
     :enotconn,
@@ -31,7 +33,9 @@ defmodule FaktoryWorker.ConnectionManager do
 
       # Handle errors from Faktory that should not be tried again, such as
       # unique jobs.
-      {{:error, "Halt: " <> reason}, state} ->
+      {{:error, "Halt: " <> reason = error}, state} ->
+        log_error(error, command)
+
         {{:ok, reason}, state}
 
       {result, state} ->
@@ -61,5 +65,9 @@ defmodule FaktoryWorker.ConnectionManager do
       {:ok, connection} -> connection
       _ -> nil
     end
+  end
+
+  defp log_error(reason, {_, %{jid: jid}}) do
+    Logger.warn("[#{jid}] #{reason}")
   end
 end

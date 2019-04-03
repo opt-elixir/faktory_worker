@@ -3,6 +3,7 @@ defmodule FaktoryWorker.ConnectionManagerTest do
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
+  import ExUnit.CaptureLog
 
   alias FaktoryWorker.Connection
   alias FaktoryWorker.ConnectionManager
@@ -86,9 +87,11 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       state = ConnectionManager.new(opts)
 
       # By receiving :ok, the job will not be retried
-      {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
+      assert capture_log(fn ->
+               {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
 
-      assert result == "job not unique"
+               assert result == "job not unique"
+             end) =~ "[warn]  [123456] Halt: job not unique"
     end
 
     test "should unset the connection when there is a socket failure" do
