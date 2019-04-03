@@ -28,7 +28,7 @@ defmodule FaktoryWorker.MixProject do
     [
       {:broadway, "~> 0.1.0"},
       {:certifi, "~> 2.5"},
-      {:ex_doc, "~> 0.19.3", only: :dev},
+      {:ex_doc, "~> 0.20.0", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
       {:poolboy, "~> 1.5"},
