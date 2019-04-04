@@ -33,6 +33,12 @@ defmodule FaktoryWorker.Connection.ConnectionIntegrationTest do
       assert reason == "Invalid password"
     end
 
+    test "should return an invalid password error if a password has not been set" do
+      {:error, reason} = Connection.open([] ++ @passworded_connection_opts)
+
+      assert reason == "Invalid password"
+    end
+
     test "should return a tls connection to faktory" do
       {:ok, %Connection{} = connection} =
         Connection.open([use_tls: true, tls_verify: false] ++ @tls_connection_opts)

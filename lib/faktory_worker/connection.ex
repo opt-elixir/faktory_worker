@@ -18,10 +18,9 @@ defmodule FaktoryWorker.Connection do
     socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
     host = Keyword.get(opts, :host, "localhost")
     port = Keyword.get(opts, :port, 7419)
-    password = Keyword.get(opts, :password)
 
     with {:ok, connection} <- socket_handler.connect(host, port, opts),
-         {:ok, _} <- verify_handshake(connection, password) do
+         {:ok, _} <- verify_handshake(connection, opts) do
       {:ok, connection}
     end
   end
@@ -60,10 +59,10 @@ defmodule FaktoryWorker.Connection do
 
   defp decode_response({:error, _} = error, _), do: error
 
-  defp verify_handshake(connection, password) do
+  defp verify_handshake(connection, opts) do
     connection
     |> recv()
-    |> send_handshake(connection, password)
+    |> send_handshake(connection, opts)
   end
 
   defp send_handshake({:ok, %{"v" => version}}, _, _) when version != @faktory_version do
@@ -73,7 +72,9 @@ defmodule FaktoryWorker.Connection do
      }')."}
   end
 
-  defp send_handshake({:ok, response}, connection, password) do
+  defp send_handshake({:ok, response}, connection, opts) do
+    password = Keyword.get(opts, :password)
+
     args =
       %{v: @faktory_version}
       |> append_password_hash(response, password)
