@@ -10,8 +10,7 @@ defmodule FaktoryWorker.Job do
   # retry
   # backtrace
   # created_at
-  # custom
-  @optional_job_fields [:queue]
+  @optional_job_fields [:queue, :custom]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
@@ -49,6 +48,8 @@ defmodule FaktoryWorker.Job do
   end
 
   @doc false
+  def perform_async(_, {:error, _} = error, _), do: error
+
   def perform_async(pipeline_name, payload, _opts) do
     message = %Broadway.Message{
       acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
@@ -59,12 +60,24 @@ defmodule FaktoryWorker.Job do
   end
 
   defp append_optional_fields(args, opts) do
-    Enum.reduce(@optional_job_fields, args, fn field, args ->
+    Enum.reduce_while(@optional_job_fields, args, fn field, args ->
       case Keyword.get(opts, field) do
-        nil -> args
-        value -> Map.put(args, field, value)
+        nil ->
+          {:cont, args}
+
+        value ->
+          if is_valid_field_value?(field, value),
+            do: {:cont, Map.put(args, field, value)},
+            else: {:halt, {:error, field_error_message(field, value)}}
       end
     end)
+  end
+
+  defp is_valid_field_value?(:queue, value), do: is_binary(value)
+  defp is_valid_field_value?(:custom, value), do: is_map(value)
+
+  defp field_error_message(field, value) do
+    "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"
   end
 
   defp push_pipeline_name(opts) do
