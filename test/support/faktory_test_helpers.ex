@@ -4,7 +4,7 @@ defmodule FaktoryWorker.FaktoryTestHelpers do
   import ExUnit.Assertions
 
   def assert_queue_size(queue_name, expected_size) do
-    Process.sleep(20)
+    Process.sleep(50)
     {:ok, connection} = FaktoryWorker.Connection.open()
     {:ok, info} = FaktoryWorker.Connection.send_command(connection, :info)
 
