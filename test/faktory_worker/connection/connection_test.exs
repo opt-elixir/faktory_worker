@@ -64,6 +64,49 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       assert {:ok, %Connection{}} = Connection.open(opts)
     end
 
+    test "should register the connection as a worker" do
+      {:ok, expected_host} = :inet.gethostname()
+      expected_sys_pid = System.get_pid()
+      runtime_vsn = System.version()
+
+      expect(FaktoryWorker.SocketMock, :connect, fn host, port, _ ->
+        {:ok,
+         %FaktoryWorker.Connection{
+           host: host,
+           port: port,
+           socket: :test_socket,
+           socket_handler: FaktoryWorker.SocketMock
+         }}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+HI {\"v\":2}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "HELLO " <> rest ->
+        args =
+          rest
+          |> String.trim_trailing("\r\n")
+          |> Jason.decode!()
+
+        assert args["hostname"] == to_string(expected_host)
+        assert args["pid"] == String.to_integer(expected_sys_pid)
+        assert args["labels"] == ["elixir-#{runtime_vsn}"]
+        assert String.length(args["wid"]) == 16
+        assert args["v"] == 2
+
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [is_worker: true, socket_handler: FaktoryWorker.SocketMock]
+
+      assert {:ok, %Connection{}} = Connection.open(opts)
+    end
+
     test "should return an error if the returned faktory version is not supported" do
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
