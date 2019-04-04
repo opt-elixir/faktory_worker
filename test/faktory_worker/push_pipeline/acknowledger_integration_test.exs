@@ -5,11 +5,12 @@ defmodule FaktoryWorker.PushPipeline.AcknowledgerIntegrationTest do
 
   alias FaktoryWorker.Job
   alias FaktoryWorker.PushPipeline.Acknowledger
+  alias FaktoryWorker.Random
 
   describe "ack/3" do
     test "should requeue a failed jobs" do
-      faktory_name = :"Test_#{random_string()}"
-      queue_name = random_string()
+      faktory_name = :"Test_#{Random.string()}"
+      queue_name = Random.string()
       pipeline_name = FaktoryWorker.PushPipeline.format_pipeline_name(faktory_name)
 
       job = %{hey: "there!"}

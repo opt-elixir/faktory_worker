@@ -4,6 +4,7 @@ defmodule FaktoryWorker.Connection do
   alias FaktoryWorker.Connection
   alias FaktoryWorker.Socket.{Tcp, Ssl}
   alias FaktoryWorker.Protocol
+  alias FaktoryWorker.Random
 
   @faktory_version 2
 
@@ -18,10 +19,9 @@ defmodule FaktoryWorker.Connection do
     socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
     host = Keyword.get(opts, :host, "localhost")
     port = Keyword.get(opts, :port, 7419)
-    password = Keyword.get(opts, :password)
 
     with {:ok, connection} <- socket_handler.connect(host, port, opts),
-         {:ok, _} <- verify_handshake(connection, password) do
+         {:ok, _} <- verify_handshake(connection, opts) do
       {:ok, connection}
     end
   end
@@ -60,10 +60,10 @@ defmodule FaktoryWorker.Connection do
 
   defp decode_response({:error, _} = error, _), do: error
 
-  defp verify_handshake(connection, password) do
+  defp verify_handshake(connection, opts) do
     connection
     |> recv()
-    |> send_handshake(connection, password)
+    |> send_handshake(connection, opts)
   end
 
   defp send_handshake({:ok, %{"v" => version}}, _, _) when version != @faktory_version do
@@ -73,10 +73,14 @@ defmodule FaktoryWorker.Connection do
      }')."}
   end
 
-  defp send_handshake({:ok, response}, connection, password) do
+  defp send_handshake({:ok, response}, connection, opts) do
+    password = Keyword.get(opts, :password)
+    is_worker = Keyword.get(opts, :is_worker, false)
+
     args =
       %{v: @faktory_version}
       |> append_password_hash(response, password)
+      |> append_worker_fields(is_worker)
 
     send_command(connection, {:hello, args})
   end
@@ -95,6 +99,22 @@ defmodule FaktoryWorker.Connection do
   end
 
   defp append_password_hash(args, _, _), do: args
+
+  defp append_worker_fields(args, true) do
+    {:ok, hostname} = :inet.gethostname()
+    sys_pid = System.get_pid()
+
+    worker_args = %{
+      hostname: to_string(hostname),
+      wid: Random.worker_id(),
+      pid: String.to_integer(sys_pid),
+      labels: ["elixir-#{System.version()}"]
+    }
+
+    Map.merge(args, worker_args)
+  end
+
+  defp append_worker_fields(args, _), do: args
 
   defp default_socket_handler(true), do: Ssl
   defp default_socket_handler(_), do: Tcp

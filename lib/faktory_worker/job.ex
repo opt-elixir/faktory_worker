@@ -3,6 +3,8 @@ defmodule FaktoryWorker.Job do
   todo: docs
   """
 
+  alias FaktoryWorker.Random
+
   # Look at supporting the following optional fields when pushing a job
   # priority
   # reserve_for
@@ -29,7 +31,7 @@ defmodule FaktoryWorker.Job do
   @doc false
   def build_payload(worker_module, job, opts) when is_list(job) do
     %{
-      jid: random_job_id(),
+      jid: Random.job_id(),
       jobtype: job_type_for_module(worker_module),
       args: job
     }
@@ -84,11 +86,6 @@ defmodule FaktoryWorker.Job do
     opts
     |> Keyword.get(:faktory_name, FaktoryWorker)
     |> FaktoryWorker.PushPipeline.format_pipeline_name()
-  end
-
-  defp random_job_id() do
-    rand_bytes = :crypto.strong_rand_bytes(12)
-    Base.encode16(rand_bytes, case: :lower)
   end
 
   defp job_type_for_module(module) do

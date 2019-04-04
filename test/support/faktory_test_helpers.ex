@@ -10,9 +10,4 @@ defmodule FaktoryWorker.FaktoryTestHelpers do
 
     assert get_in(info, ["faktory", "queues", queue_name]) == expected_size
   end
-
-  def random_string() do
-    bytes = :crypto.strong_rand_bytes(12)
-    Base.encode16(bytes)
-  end
 end
