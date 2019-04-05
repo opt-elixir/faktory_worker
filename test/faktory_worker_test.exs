@@ -20,7 +20,8 @@ defmodule FaktoryWorkerTest do
 
       assert config == [
                {FaktoryWorker.Pool, [name: :my_test_faktory]},
-               {FaktoryWorker.PushPipeline, [name: :my_test_faktory]}
+               {FaktoryWorker.PushPipeline, [name: :my_test_faktory]},
+               {FaktoryWorker.WorkerSupervisor, [name: :my_test_faktory]}
              ]
     end
 
@@ -36,7 +37,8 @@ defmodule FaktoryWorkerTest do
 
       assert config == [
                {FaktoryWorker.Pool, [name: FaktoryWorker, pool: [size: 25]]},
-               {FaktoryWorker.PushPipeline, [name: FaktoryWorker, pool: [size: 25]]}
+               {FaktoryWorker.PushPipeline, [name: FaktoryWorker, pool: [size: 25]]},
+               {FaktoryWorker.WorkerSupervisor, [name: FaktoryWorker, pool: [size: 25]]}
              ]
     end
 
@@ -55,6 +57,8 @@ defmodule FaktoryWorkerTest do
                {FaktoryWorker.Pool,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
                {FaktoryWorker.PushPipeline,
+                [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
+               {FaktoryWorker.WorkerSupervisor,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]}
              ]
     end
@@ -68,7 +72,8 @@ defmodule FaktoryWorkerTest do
          [
            [
              {FaktoryWorker.Pool, [name: FaktoryWorker]},
-             {FaktoryWorker.PushPipeline, [name: FaktoryWorker]}
+             {FaktoryWorker.PushPipeline, [name: FaktoryWorker]},
+             {FaktoryWorker.WorkerSupervisor, [name: FaktoryWorker]}
            ],
            [strategy: :one_for_one]
          ]},

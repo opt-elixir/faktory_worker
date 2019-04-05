@@ -3,6 +3,12 @@ defmodule FaktoryWorker.Job.JobTest do
 
   alias FaktoryWorker.Job
 
+  defmodule TestWorker do
+    use FaktoryWorker.Job,
+      queue: "test_queue",
+      concurrency: 10
+  end
+
   describe "build_payload/3" do
     test "should create new faktory job struct" do
       data = %{hey: "there!"}
@@ -91,6 +97,15 @@ defmodule FaktoryWorker.Job.JobTest do
       {:error, error} = Job.perform_async(TestPipeline, payload, [])
 
       assert error == "The field 'queue' has an invalid value '123'"
+    end
+  end
+
+  describe "__using__/1" do
+    test "should make the worker config available via worker_config/0" do
+      config = TestWorker.worker_config()
+
+      assert Keyword.get(config, :queue) == "test_queue"
+      assert Keyword.get(config, :concurrency) == 10
     end
   end
 end

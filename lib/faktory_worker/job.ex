@@ -18,6 +18,8 @@ defmodule FaktoryWorker.Job do
     alias FaktoryWorker.Job
 
     quote do
+      def worker_config(), do: unquote(using_opts)
+
       def perform_async(job, opts \\ []) do
         opts = Keyword.merge(unquote(using_opts), opts)
 
