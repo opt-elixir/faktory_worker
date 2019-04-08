@@ -1,7 +1,6 @@
 defmodule FaktoryWorker.Connection do
   @moduledoc false
 
-  alias FaktoryWorker.Connection
   alias FaktoryWorker.Socket.{Tcp, Ssl}
   alias FaktoryWorker.Protocol
   alias FaktoryWorker.Random
@@ -13,7 +12,7 @@ defmodule FaktoryWorker.Connection do
   @enforce_keys [:host, :port, :socket, :socket_handler]
   defstruct [:host, :port, :socket, :socket_handler]
 
-  @spec open(opts :: keyword()) :: {:ok, Connection.t()} | {:error, term()}
+  @spec open(opts :: keyword()) :: {:ok, __MODULE__.t()} | {:error, term()}
   def open(opts \\ []) do
     use_tls = Keyword.get(opts, :use_tls, false)
     socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
@@ -26,8 +25,8 @@ defmodule FaktoryWorker.Connection do
     end
   end
 
-  @spec send_command(connection :: Connection.t(), Protocol.protocol_command()) ::
-          {:ok, String.t()} | {:error, term()}
+  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) ::
+          Protocol.protocol_response()
   def send_command(%{socket_handler: socket_handler} = connection, command) do
     with {:ok, payload} <- Protocol.encode_command(command),
          :ok <- socket_handler.send(connection, payload),
@@ -75,12 +74,11 @@ defmodule FaktoryWorker.Connection do
 
   defp send_handshake({:ok, response}, connection, opts) do
     password = Keyword.get(opts, :password)
-    is_worker = Keyword.get(opts, :is_worker, false)
 
     args =
       %{v: @faktory_version}
       |> append_password_hash(response, password)
-      |> append_worker_fields(is_worker)
+      |> append_worker_fields(opts)
 
     send_command(connection, {:hello, args})
   end
@@ -100,21 +98,28 @@ defmodule FaktoryWorker.Connection do
 
   defp append_password_hash(args, _, _), do: args
 
-  defp append_worker_fields(args, true) do
-    {:ok, hostname} = :inet.gethostname()
+  defp append_worker_fields(args, opts) do
+    is_worker = Keyword.get(opts, :is_worker, false)
+
+    if is_worker,
+      do: put_worker_args(args, opts),
+      else: args
+  end
+
+  defp put_worker_args(args, opts) do
+    worker_id = Keyword.get(opts, :worker_id)
     sys_pid = System.get_pid()
+    {:ok, hostname} = :inet.gethostname()
 
     worker_args = %{
       hostname: to_string(hostname),
-      wid: Random.worker_id(),
+      wid: worker_id || Random.worker_id(),
       pid: String.to_integer(sys_pid),
       labels: ["elixir-#{System.version()}"]
     }
 
     Map.merge(args, worker_args)
   end
-
-  defp append_worker_fields(args, _), do: args
 
   defp default_socket_handler(true), do: Ssl
   defp default_socket_handler(_), do: Tcp

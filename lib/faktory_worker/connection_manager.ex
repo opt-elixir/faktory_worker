@@ -6,6 +6,8 @@ defmodule FaktoryWorker.ConnectionManager do
 
   require Logger
 
+  @type t :: %__MODULE__{}
+
   @connection_errors [
     :closed,
     :enotconn,
@@ -14,6 +16,7 @@ defmodule FaktoryWorker.ConnectionManager do
 
   defstruct [:opts, :conn]
 
+  @spec new(opts :: keyword()) :: ConnectionManager.t()
   def new(opts) do
     %__MODULE__{
       conn: open_connection(opts),
@@ -21,6 +24,12 @@ defmodule FaktoryWorker.ConnectionManager do
     }
   end
 
+  @spec send_command(
+          state :: ConnectionManager.t(),
+          command :: FaktoryWorker.Protocol.protocol_command(),
+          allow_retry :: boolean()
+        ) ::
+          {Protocol.protocol_response(), ConnectionManager.t()}
   def send_command(%ConnectionManager{} = state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
@@ -38,8 +47,8 @@ defmodule FaktoryWorker.ConnectionManager do
 
         {{:ok, reason}, state}
 
-      {result, state} ->
-        {result, state}
+      result ->
+        result
     end
   end
 

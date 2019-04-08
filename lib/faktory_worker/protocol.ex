@@ -1,7 +1,17 @@
 defmodule FaktoryWorker.Protocol do
   @moduledoc false
 
-  @type protocol_command :: {:hello, map()} | {:push, map()} | :info
+  @type protocol_command ::
+          {:hello, args :: map()}
+          | {:push, args :: map()}
+          | {:beat, worker_id :: String.t()}
+          | :info
+
+  @type protocol_response ::
+          {:ok, String.t()}
+          | {:ok, map()}
+          | {:ok, {:bulk_string, pos_integer()}}
+          | {:error, any()}
 
   @spec encode_command(command :: protocol_command()) :: {:ok, String.t()} | {:error, term()}
   def encode_command({:hello, args}) do
@@ -12,12 +22,15 @@ defmodule FaktoryWorker.Protocol do
     encode("PUSH", args)
   end
 
+  def encode_command({:beat, worker_id}) do
+    encode("BEAT", %{wid: worker_id})
+  end
+
   def encode_command(:info) do
     encode("INFO")
   end
 
-  @spec decode_response(response :: String.t()) ::
-          {:ok, term()} | {:ok, {:bulk_string, pos_integer()}} | {:error, term()}
+  @spec decode_response(response :: String.t()) :: protocol_response()
   def decode_response("+HI " <> rest) do
     decode(rest)
   end
@@ -35,6 +48,12 @@ defmodule FaktoryWorker.Protocol do
     # we add '2' to length here to account for the newline '\r\n'
     # that will be at the end of the next server response
     {:ok, {:bulk_string, length + 2}}
+  end
+
+  def decode_response("+{" <> _ = response) do
+    response
+    |> String.trim_leading("+")
+    |> decode()
   end
 
   def decode_response("{" <> _ = json_hash) do
