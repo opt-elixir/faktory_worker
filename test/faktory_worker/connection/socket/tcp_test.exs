@@ -21,6 +21,16 @@ defmodule FaktoryWorker.Connection.Socket.TcpTest do
     end
   end
 
+  describe "close/1" do
+    test "should close a socket connection to faktory" do
+      {:ok, %Connection{} = connection} = Tcp.connect("localhost", 7419)
+
+      :ok = Tcp.close(connection)
+
+      assert :erlang.port_info(connection.socket) == :undefined
+    end
+  end
+
   describe "send/1" do
     test "should be able to send a packet to faktory" do
       {:ok, %Connection{} = connection} = Tcp.connect("localhost", 7419)

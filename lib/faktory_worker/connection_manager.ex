@@ -30,7 +30,7 @@ defmodule FaktoryWorker.ConnectionManager do
           allow_retry :: boolean()
         ) ::
           {Protocol.protocol_response(), ConnectionManager.t()}
-  def send_command(%ConnectionManager{} = state, command, allow_retry \\ true) do
+  def send_command(state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
         error = {:error, "Failed to connect to Faktory"}
@@ -50,6 +50,14 @@ defmodule FaktoryWorker.ConnectionManager do
       result ->
         result
     end
+  end
+
+  @spec close_connection(state :: ConnectionManager.t()) :: ConnectionManager.t()
+  def close_connection(%{conn: nil} = state), do: state
+
+  def close_connection(%{conn: conn} = state) do
+    {:ok, _} = Connection.close(conn)
+    %{state | conn: nil}
   end
 
   defp try_send_command(%{conn: nil, opts: opts} = state, command) do

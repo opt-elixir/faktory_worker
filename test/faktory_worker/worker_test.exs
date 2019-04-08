@@ -184,4 +184,35 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :terminate
     end
   end
+
+  describe "send_end/1" do
+    test "should send the 'END' command to faktory" do
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :close, fn _ ->
+        :ok
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      result =
+        opts
+        |> Worker.new(self())
+        |> Worker.send_end()
+
+      assert result.conn == nil
+      assert result.worker_state == :ended
+    end
+  end
 end

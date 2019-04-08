@@ -32,6 +32,13 @@ defmodule FaktoryWorker.Worker do
     |> schedule_beat()
   end
 
+  @spec send_end(state :: __MODULE__.t()) :: __MODULE__.t()
+  def send_end(%{conn: conn} = state) do
+    conn
+    |> ConnectionManager.send_command(:end)
+    |> handle_end_response(state)
+  end
+
   @spec send_beat(state :: __MODULE__.t()) :: __MODULE__.t()
   def send_beat(%{worker_state: worker_state} = state)
       when worker_state in @valid_beat_states do
@@ -51,6 +58,11 @@ defmodule FaktoryWorker.Worker do
 
   defp handle_beat_response({_, conn}, state) do
     %{state | conn: conn}
+  end
+
+  defp handle_end_response({_, conn}, state) do
+    %{conn: nil} = ConnectionManager.close_connection(conn)
+    %{state | worker_state: :ended, conn: nil}
   end
 
   defp clear_beat_ref(state), do: %{state | beat_ref: nil}
