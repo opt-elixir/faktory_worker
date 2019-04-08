@@ -32,7 +32,7 @@ defmodule FaktoryWorker.WorkerSupervisor do
 
       opts = [name: worker_name, worker_id: worker_id]
 
-      [FaktoryWorker.Worker.child_spec(opts) | acc]
+      [FaktoryWorker.Worker.Server.child_spec(opts) | acc]
     end)
   end
 end

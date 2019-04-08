@@ -33,7 +33,7 @@ defmodule FaktoryWorker.WorkerSupervisorTest do
       assert worker_name == "SingleWorker"
       assert byte_size(worker_id) == 16
       assert type == :worker
-      assert server_module == FaktoryWorker.Worker
+      assert server_module == FaktoryWorker.Worker.Server
 
       :ok = Supervisor.stop(pid)
     end

@@ -1,7 +1,6 @@
 defmodule FaktoryWorker.Connection do
   @moduledoc false
 
-  alias FaktoryWorker.Connection
   alias FaktoryWorker.Socket.{Tcp, Ssl}
   alias FaktoryWorker.Protocol
   alias FaktoryWorker.Random
@@ -13,7 +12,7 @@ defmodule FaktoryWorker.Connection do
   @enforce_keys [:host, :port, :socket, :socket_handler]
   defstruct [:host, :port, :socket, :socket_handler]
 
-  @spec open(opts :: keyword()) :: {:ok, Connection.t()} | {:error, term()}
+  @spec open(opts :: keyword()) :: {:ok, __MODULE__.t()} | {:error, term()}
   def open(opts \\ []) do
     use_tls = Keyword.get(opts, :use_tls, false)
     socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
@@ -26,8 +25,8 @@ defmodule FaktoryWorker.Connection do
     end
   end
 
-  @spec send_command(connection :: Connection.t(), Protocol.protocol_command()) ::
-          {:ok, String.t()} | {:error, term()}
+  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) ::
+          Protocol.protocol_response()
   def send_command(%{socket_handler: socket_handler} = connection, command) do
     with {:ok, payload} <- Protocol.encode_command(command),
          :ok <- socket_handler.send(connection, payload),

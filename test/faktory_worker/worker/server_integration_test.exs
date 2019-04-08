@@ -1,12 +1,13 @@
-defmodule FaktoryWorker.WorkerIntegrationTest do
+defmodule FaktoryWorker.Worker.ServerIntegrationTest do
   use ExUnit.Case
 
-  alias FaktoryWorker.Worker
+  alias FaktoryWorker.Worker.Server
+  alias FaktoryWorker.Random
 
   describe "start_link/1" do
-    test "should start the worker and connect to faktory" do
-      opts = [name: :test_worker_1]
-      pid = start_supervised!(Worker.child_spec(opts))
+    test "should start the worker server and connect to faktory" do
+      opts = [name: :test_worker_1, worker_id: Random.worker_id()]
+      pid = start_supervised!(Server.child_spec(opts))
 
       %{conn: connection_manager} = :sys.get_state(pid)
 

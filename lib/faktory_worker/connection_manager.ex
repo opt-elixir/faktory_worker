@@ -29,7 +29,7 @@ defmodule FaktoryWorker.ConnectionManager do
           command :: FaktoryWorker.Protocol.protocol_command(),
           allow_retry :: boolean()
         ) ::
-          {{:ok, binary()} | {:error, any()}, ConnectionManager.t()}
+          {Protocol.protocol_response(), ConnectionManager.t()}
   def send_command(%ConnectionManager{} = state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
@@ -47,8 +47,8 @@ defmodule FaktoryWorker.ConnectionManager do
 
         {{:ok, reason}, state}
 
-      {result, state} ->
-        {result, state}
+      result ->
+        result
     end
   end
 

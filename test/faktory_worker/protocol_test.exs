@@ -2,6 +2,7 @@ defmodule FaktoryWorker.ProtocolTest do
   use ExUnit.Case, async: true
 
   alias FaktoryWorker.Protocol
+  alias FaktoryWorker.Random
 
   describe "encode_command/1" do
     test "should encode the 'HELLO' command" do
@@ -19,6 +20,13 @@ defmodule FaktoryWorker.ProtocolTest do
 
       assert command ==
                "PUSH {\"args\":[{\"some\":\"values\"}],\"jid\":\"123456\",\"jobtype\":\"TestJob\",\"queue\":\"test_queue\"}\r\n"
+    end
+
+    test "should encode the 'BEAT' command" do
+      worker_id = Random.worker_id()
+      {:ok, command} = Protocol.encode_command({:beat, worker_id})
+
+      assert command == "BEAT {\"wid\":\"#{worker_id}\"}\r\n"
     end
 
     test "should encode the 'INFO' command" do
@@ -66,6 +74,12 @@ defmodule FaktoryWorker.ProtocolTest do
                "response" => "data",
                "some" => "longer"
              }
+    end
+
+    test "should decode a json hash response" do
+      {:ok, resposne} = Protocol.decode_response("+{\"hey\":\"there!\"}\r\n")
+
+      assert resposne == %{"hey" => "there!"}
     end
   end
 end
