@@ -30,7 +30,7 @@ defmodule FaktoryWorker.WorkerSupervisor do
       worker_id = Random.worker_id()
       worker_name = :"#{worker_module}_#{worker_id}"
 
-      opts = [name: worker_name, worker_id: worker_id]
+      opts = [name: worker_name, worker_id: worker_id, worker_module: worker_module]
 
       [FaktoryWorker.Worker.Server.child_spec(opts) | acc]
     end)

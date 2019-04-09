@@ -7,6 +7,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
+  alias FaktoryWorker.TestQueueWorker
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -39,7 +40,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "start_link/1" do
     test "should start the worker server" do
-      opts = [name: :test_worker_1, worker_id: Random.worker_id()]
+      opts = [name: :test_worker_1, worker_id: Random.worker_id(), worker_module: TestQueueWorker]
       pid = start_supervised!(Server.child_spec(opts))
 
       assert pid == Process.whereis(:test_worker_1)
@@ -54,6 +55,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -78,6 +80,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -114,6 +117,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
         beat_interval: 1,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]

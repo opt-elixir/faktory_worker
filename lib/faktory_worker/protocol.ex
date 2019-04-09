@@ -5,6 +5,7 @@ defmodule FaktoryWorker.Protocol do
           {:hello, args :: map()}
           | {:push, args :: map()}
           | {:beat, worker_id :: String.t()}
+          | {:fetch, queues :: [String.t()]}
           | :info
           | :end
           | :flush
@@ -13,6 +14,7 @@ defmodule FaktoryWorker.Protocol do
           {:ok, String.t()}
           | {:ok, map()}
           | {:ok, {:bulk_string, pos_integer()}}
+          | {:ok, :no_content}
           | {:error, any()}
 
   @spec encode_command(command :: protocol_command()) :: {:ok, String.t()} | {:error, term()}
@@ -26,6 +28,14 @@ defmodule FaktoryWorker.Protocol do
 
   def encode_command({:beat, worker_id}) do
     encode("BEAT", %{wid: worker_id})
+  end
+
+  def encode_command({:fetch, []}) do
+    encode("FETCH", "default")
+  end
+
+  def encode_command({:fetch, queues}) do
+    encode("FETCH", Enum.join(queues, " "))
   end
 
   def encode_command(:info) do
@@ -48,6 +58,8 @@ defmodule FaktoryWorker.Protocol do
   def decode_response("+OK\r\n"), do: {:ok, "OK"}
 
   def decode_response("-ERR " <> rest), do: {:error, trim_newline(rest)}
+
+  def decode_response("$-1\r\n"), do: {:ok, :no_content}
 
   def decode_response("$" <> rest) do
     length =
@@ -74,6 +86,10 @@ defmodule FaktoryWorker.Protocol do
 
   defp encode(command) do
     {:ok, "#{command}\r\n"}
+  end
+
+  defp encode(command, args) when is_binary(args) do
+    {:ok, "#{command} #{args}\r\n"}
   end
 
   defp encode(command, args) do

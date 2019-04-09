@@ -5,14 +5,27 @@ defmodule FaktoryWorker.Worker do
 
   @type t :: %__MODULE__{}
 
+  @two_seconds 2000
   @fifteen_seconds 15_000
-  @valid_beat_states [:ok, :quiet]
+  @valid_beat_states [:ok, :quiet, :running_job]
 
-  defstruct [:conn, :worker_id, :worker_state, :worker_server, :beat_interval, :beat_ref]
+  defstruct [
+    :conn,
+    :worker_id,
+    :worker_state,
+    :worker_server,
+    :worker_config,
+    :fetch_interval,
+    :fetch_ref,
+    :beat_interval,
+    :beat_ref
+  ]
 
-  @spec new(opts :: keyword(), server :: pid()) :: __MODULE__.t()
-  def new(opts, server) do
+  @spec new(opts :: keyword()) :: __MODULE__.t()
+  def new(opts) do
     worker_id = Keyword.fetch!(opts, :worker_id)
+    worker_module = Keyword.fetch!(opts, :worker_module)
+    fetch_interval = Keyword.get(opts, :fetch_interval, @two_seconds)
     beat_interval = Keyword.get(opts, :beat_interval, @fifteen_seconds)
 
     connection =
@@ -26,10 +39,12 @@ defmodule FaktoryWorker.Worker do
       conn: connection,
       worker_id: worker_id,
       worker_state: :ok,
-      worker_server: server,
+      worker_config: worker_module.worker_config(),
+      fetch_interval: fetch_interval,
       beat_interval: beat_interval
     }
     |> schedule_beat()
+    |> schedule_fetch()
   end
 
   @spec send_end(state :: __MODULE__.t()) :: __MODULE__.t()
@@ -51,6 +66,20 @@ defmodule FaktoryWorker.Worker do
 
   def send_beat(state), do: clear_beat_ref(state)
 
+  def send_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
+    queues =
+      state.worker_config
+      |> Keyword.get(:queue, [])
+      |> format_queue_for_command()
+
+    state.conn
+    |> ConnectionManager.send_command({:fetch, queues})
+    |> handle_fetch_response(state)
+    |> schedule_fetch()
+  end
+
+  def send_fetch(state), do: clear_fetch_ref(state)
+
   defp handle_beat_response({{:ok, %{"state" => new_state}}, conn}, state) do
     new_state = String.to_existing_atom(new_state)
     %{state | conn: conn, worker_state: new_state}
@@ -69,9 +98,30 @@ defmodule FaktoryWorker.Worker do
 
   defp schedule_beat(%{worker_state: worker_state} = state)
        when worker_state in @valid_beat_states do
-    beat_ref = Process.send_after(state.worker_server, :beat, state.beat_interval)
+    beat_ref = Process.send_after(self(), :beat, state.beat_interval)
     %{state | beat_ref: beat_ref}
   end
 
   defp schedule_beat(state), do: state
+
+  defp handle_fetch_response({{:ok, :no_content}, conn}, state) do
+    %{state | conn: conn}
+  end
+
+  defp handle_fetch_response({{_, r}, conn}, state) do
+    IO.inspect(r)
+    %{state | conn: conn, worker_state: :running_job}
+  end
+
+  defp clear_fetch_ref(state), do: %{state | fetch_ref: nil}
+
+  defp schedule_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
+    fetch_ref = Process.send_after(self(), :fetch, state.fetch_interval)
+    %{state | fetch_ref: fetch_ref}
+  end
+
+  defp schedule_fetch(state), do: state
+
+  defp format_queue_for_command(queue) when is_binary(queue), do: [queue]
+  defp format_queue_for_command(queues), do: queues
 end
