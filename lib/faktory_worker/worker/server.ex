@@ -21,6 +21,7 @@ defmodule FaktoryWorker.Worker.Server do
 
   @impl true
   def init(opts) do
+    Process.flag(:trap_exit, true)
     {:ok, %{}, {:continue, {:setup_connection, opts}}}
   end
 
@@ -34,6 +35,11 @@ defmodule FaktoryWorker.Worker.Server do
   def handle_info(:beat, state) do
     state = Worker.send_beat(state)
     {:noreply, state}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    Worker.send_end(state)
   end
 
   defp name_from_opts(opts) do

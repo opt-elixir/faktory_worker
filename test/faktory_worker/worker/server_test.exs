@@ -49,6 +49,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
     test "should open a connection to faktory" do
       worker_connection_mox()
+      connection_close_mox()
 
       opts = [
         name: :test_worker_1,
@@ -65,6 +66,24 @@ defmodule FaktoryWorker.Worker.ServerTest do
       assert connection_manager.conn.socket_handler == FaktoryWorker.SocketMock
       assert connection_manager.conn.socket == :test_socket
 
+      :ok = stop_supervised(:test_worker_1)
+    end
+  end
+
+  describe "termiante/2" do
+    test "should send the 'END' command when the server terminates" do
+      worker_connection_mox()
+      connection_close_mox()
+
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.worker_id(),
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      _ = start_supervised!(Server.child_spec(opts))
+
+      # shuts down the process, see connection_close_mox for test expectations
       :ok = stop_supervised(:test_worker_1)
     end
   end
@@ -89,6 +108,8 @@ defmodule FaktoryWorker.Worker.ServerTest do
         # return the terminate state here to prevent futher beat commands
         {:ok, "+{\"state\": \"terminate\"}\r\n"}
       end)
+
+      connection_close_mox()
 
       opts = [
         name: :test_worker_1,

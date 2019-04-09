@@ -107,6 +107,27 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
     end
   end
 
+  describe "close/1" do
+    test "should close a connection to faktory" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :close, fn _ ->
+        :ok
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+      {:ok, %Connection{} = connection} = Connection.open(opts)
+      {:ok, %Connection{} = connection} = Connection.close(connection)
+
+      assert connection == %Connection{
+               host: nil,
+               port: nil,
+               socket: nil,
+               socket_handler: nil
+             }
+    end
+  end
+
   describe "send_command/2" do
     test "should call into the socket handler" do
       expect(FaktoryWorker.SocketMock, :send, fn _, "HELLO {\"v\":1}\r\n" ->
