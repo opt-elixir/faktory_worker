@@ -41,6 +41,12 @@ defmodule FaktoryWorker.ProtocolTest do
       assert command == "END\r\n"
     end
 
+    test "should encode the 'FLUSH' command" do
+      {:ok, command} = Protocol.encode_command(:flush)
+
+      assert command == "FLUSH\r\n"
+    end
+
     test "should return an error when attempting to encode bad data" do
       {:error, reason} = Protocol.encode_command({:hello, {:v, 2}})
 
