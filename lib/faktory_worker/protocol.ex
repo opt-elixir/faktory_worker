@@ -7,6 +7,7 @@ defmodule FaktoryWorker.Protocol do
           | {:beat, worker_id :: String.t()}
           | :info
           | :end
+          | :flush
 
   @type protocol_response ::
           {:ok, String.t()}
@@ -33,6 +34,10 @@ defmodule FaktoryWorker.Protocol do
 
   def encode_command(:end) do
     encode("END")
+  end
+
+  def encode_command(:flush) do
+    encode("FLUSH")
   end
 
   @spec decode_response(response :: String.t()) :: protocol_response()
