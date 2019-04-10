@@ -8,7 +8,6 @@ defmodule FaktoryWorker.WorkerTest do
   alias FaktoryWorker.Random
   alias FaktoryWorker.{DefaultWorker, TestQueueWorker}
 
-  @two_seconds 2000
   @fifteen_seconds 15_000
 
   setup :verify_on_exit!
@@ -22,8 +21,10 @@ defmodule FaktoryWorker.WorkerTest do
 
       assert worker.worker_id == worker_id
       assert worker.worker_state == :ok
+      assert worker.worker_module == TestQueueWorker
+      assert worker.job_ref == nil
+      assert worker.job_id == nil
       assert worker.beat_interval == @fifteen_seconds
-      assert worker.fetch_interval == @two_seconds
     end
 
     test "should raise if no worker id is provided" do
@@ -65,9 +66,9 @@ defmodule FaktoryWorker.WorkerTest do
     test "should schedule a fetch to be triggered" do
       opts = [worker_id: Random.worker_id(), worker_module: TestQueueWorker]
 
-      worker = Worker.new(opts)
+      Worker.new(opts)
 
-      assert is_reference(worker.fetch_ref)
+      assert_received :fetch
     end
   end
 
@@ -269,6 +270,10 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.conn == nil
       assert result.worker_state == :ended
     end
+
+    test "should not send 'END' command when no connection has been setup" do
+      assert Worker.send_end(%{}) == %{}
+    end
   end
 
   describe "send_fetch/1" do
@@ -289,12 +294,13 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      worker = Worker.new(opts)
+      opts
+      |> Worker.new()
+      |> Worker.send_fetch()
 
-      result = Worker.send_fetch(worker)
+      consume_initial_fetch_message()
 
-      assert is_reference(result.fetch_ref)
-      assert result.fetch_ref != worker.fetch_ref
+      assert_received :fetch
     end
 
     test "should not send a fetch command and schedule next fetch when state is ':quiet'" do
@@ -306,13 +312,14 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      result =
-        opts
-        |> Worker.new()
-        |> Map.put(:worker_state, :quiet)
-        |> Worker.send_fetch()
+      opts
+      |> Worker.new()
+      |> Map.put(:worker_state, :quiet)
+      |> Worker.send_fetch()
 
-      assert result.fetch_ref == nil
+      consume_initial_fetch_message()
+
+      refute_received :fetch
     end
 
     test "should not send a fetch command and schedule next fetch when state is ':terminate'" do
@@ -324,13 +331,14 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      result =
-        opts
-        |> Worker.new()
-        |> Map.put(:worker_state, :terminate)
-        |> Worker.send_fetch()
+      opts
+      |> Worker.new()
+      |> Map.put(:worker_state, :terminate)
+      |> Worker.send_fetch()
 
-      assert result.fetch_ref == nil
+      consume_initial_fetch_message()
+
+      refute_received :fetch
     end
 
     test "should not send a fetch command and schedule next fetch when state is ':running_job'" do
@@ -342,13 +350,14 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      result =
-        opts
-        |> Worker.new()
-        |> Map.put(:worker_state, :running_job)
-        |> Worker.send_fetch()
+      opts
+      |> Worker.new()
+      |> Map.put(:worker_state, :running_job)
+      |> Worker.send_fetch()
 
-      assert result.fetch_ref == nil
+      consume_initial_fetch_message()
+
+      refute_received :fetch
     end
 
     test "should send a fetch command without a queue configured" do
@@ -399,6 +408,18 @@ defmodule FaktoryWorker.WorkerTest do
     end
 
     test "should set state to ':running_job' when there is a job to process" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      job =
+        Jason.encode!(%{
+          "args" => [%{"hey" => "there!"}],
+          "created_at" => "2019-04-09T12:14:07.6550641Z",
+          "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+          "jid" => "f47ccc395ef9d9646118434f",
+          "jobtype" => "FaktoryWorker.TestQueueWorker",
+          "queue" => "test_queue"
+        })
+
       worker_connection_mox()
 
       expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
@@ -406,20 +427,10 @@ defmodule FaktoryWorker.WorkerTest do
       end)
 
       expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "$212\r\n"}
+        {:ok, "$#{byte_size(job)}\r\n"}
       end)
 
       expect(FaktoryWorker.SocketMock, :recv, fn _, _ ->
-        job =
-          Jason.encode!(%{
-            "args" => [%{"hey" => "there!"}],
-            "created_at" => "2019-04-09T12:14:07.6550641Z",
-            "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
-            "jid" => "f47ccc395ef9d9646118434f",
-            "jobtype" => "FaktoryWorker.TestQueueWorker",
-            "queue" => "test_queue"
-          })
-
         {:ok, "#{job}\r\n"}
       end)
 
@@ -435,6 +446,212 @@ defmodule FaktoryWorker.WorkerTest do
         |> Worker.send_fetch()
 
       assert result.worker_state == :running_job
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+
+    test "should run the job returned job in a new process" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      job =
+        Jason.encode!(%{
+          "args" => [%{"hey" => "there!", "_send_to_" => inspect(self())}],
+          "created_at" => "2019-04-09T12:14:07.6550641Z",
+          "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+          "jid" => "f47ccc395ef9d9646118434f",
+          "jobtype" => "FaktoryWorker.TestQueueWorker",
+          "queue" => "test_queue"
+        })
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$#{byte_size(job)}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _, _ ->
+        {:ok, "#{job}\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      result =
+        opts
+        |> Worker.new()
+        |> Worker.send_fetch()
+
+      assert %Task{} = result.job_ref
+      assert result.job_id == "f47ccc395ef9d9646118434f"
+
+      assert_receive {TestQueueWorker, :perform, %{"hey" => "there!"}}, 50
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+  end
+
+  describe "ack_job/2" do
+    defp new_running_worker(opts, job_id) do
+      opts
+      |> Worker.new()
+      |> Map.put(:job_id, job_id)
+      |> Map.put(:job_ref, :erlang.make_ref())
+      |> Map.put(:worker_state, :running_job)
+    end
+
+    test "should send a successful 'ACK' to faktory" do
+      job_id = Random.string()
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      result =
+        opts
+        |> new_running_worker(job_id)
+        |> Worker.ack_job(:ok)
+
+      assert result.worker_state == :ok
+      assert result.job_ref == nil
+      assert result.job_id == nil
+    end
+
+    test "should schedule the next fetch for a successful ack" do
+      job_id = Random.string()
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      opts
+      |> new_running_worker(job_id)
+      |> Worker.ack_job(:ok)
+
+      assert_received :fetch
+    end
+
+    test "should send a 'FAIL' to faktory for an unsuccessful job" do
+      job_id = Random.string()
+
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Elixir.RuntimeError",
+        message: "It went bang!",
+        backtrace: Enum.map(stacktrace, &Exception.format_stacktrace_entry/1)
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      error = {%RuntimeError{message: "It went bang!"}, stacktrace}
+
+      result =
+        opts
+        |> new_running_worker(job_id)
+        |> Worker.ack_job({:error, error})
+
+      assert result.worker_state == :ok
+      assert result.job_ref == nil
+      assert result.job_id == nil
+    end
+
+    test "should schedule the next fetch for an unsuccessful ack" do
+      job_id = Random.string()
+
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Elixir.RuntimeError",
+        message: "It went bang!",
+        backtrace: Enum.map(stacktrace, &Exception.format_stacktrace_entry/1)
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      error = {%RuntimeError{message: "It went bang!"}, stacktrace}
+
+      opts
+      |> new_running_worker(job_id)
+      |> Worker.ack_job({:error, error})
+
+      assert_received :fetch
+    end
+  end
+
+  defp consume_initial_fetch_message() do
+    # calling Worker.new/1 schedules an initial fetch
+    receive do
+      :fetch -> :ok
+    after
+      1 -> :error
     end
   end
 end

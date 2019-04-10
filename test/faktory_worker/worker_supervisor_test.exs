@@ -4,12 +4,18 @@ defmodule FaktoryWorker.WorkerSupervisorTest do
   alias FaktoryWorker.WorkerSupervisor
 
   defmodule SingleWorker do
-    use FaktoryWorker.Job
+    use FaktoryWorker.Job,
+      disable_fetch: true
+
+    def perform(_), do: :ok
   end
 
   defmodule MultiWorker do
     use FaktoryWorker.Job,
+      disable_fetch: true,
       concurrency: 10
+
+    def perform(_), do: :ok
   end
 
   describe "start_link/1" do
@@ -41,7 +47,6 @@ defmodule FaktoryWorker.WorkerSupervisorTest do
     test "should start the list of specified workers with concurrency settings" do
       opts = [name: FaktoryWorker, workers: [SingleWorker, MultiWorker]]
       {:ok, pid} = WorkerSupervisor.start_link(opts)
-
       children = Supervisor.which_children(pid)
 
       %{"SingleWorker" => single_workers, "MultiWorker" => multi_workers} =

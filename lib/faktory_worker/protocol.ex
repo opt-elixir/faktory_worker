@@ -6,6 +6,8 @@ defmodule FaktoryWorker.Protocol do
           | {:push, args :: map()}
           | {:beat, worker_id :: String.t()}
           | {:fetch, queues :: [String.t()]}
+          | {:ack, job_id :: String.t()}
+          | {:fail, args :: map()}
           | :info
           | :end
           | :flush
@@ -36,6 +38,14 @@ defmodule FaktoryWorker.Protocol do
 
   def encode_command({:fetch, queues}) do
     encode("FETCH", Enum.join(queues, " "))
+  end
+
+  def encode_command({:ack, job_id}) do
+    encode("ACK", %{jid: job_id})
+  end
+
+  def encode_command({:fail, args}) do
+    encode("FAIL", args)
   end
 
   def encode_command(:info) do

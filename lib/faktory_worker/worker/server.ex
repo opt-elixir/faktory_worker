@@ -44,6 +44,19 @@ defmodule FaktoryWorker.Worker.Server do
   end
 
   @impl true
+  def handle_info({job_ref, _}, state) when is_reference(job_ref) do
+    Process.demonitor(job_ref, [:flush])
+    state = Worker.ack_job(state, :ok)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _job_ref, :process, _pid, reason}, state) do
+    state = Worker.ack_job(state, {:error, reason})
+    {:noreply, state}
+  end
+
+  @impl true
   def terminate(_reason, state) do
     Worker.send_end(state)
   end

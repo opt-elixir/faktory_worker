@@ -5,19 +5,28 @@ defmodule FaktoryWorker.Job do
 
   alias FaktoryWorker.Random
 
+  @callback perform(args :: any()) :: any()
+
   # Look at supporting the following optional fields when pushing a job
   # priority
   # reserve_for
   # at
-  # retry
   # backtrace
   # created_at
-  @optional_job_fields [:queue, :custom]
+  @optional_job_fields [:queue, :custom, :retry]
+
+  @default_worker_config [
+    retry: 25
+  ]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
 
+    using_opts = Keyword.merge(@default_worker_config, using_opts)
+
     quote do
+      @behaviour FaktoryWorker.Job
+
       def worker_config(), do: unquote(using_opts)
 
       def perform_async(job, opts \\ []) do
@@ -79,6 +88,7 @@ defmodule FaktoryWorker.Job do
 
   defp is_valid_field_value?(:queue, value), do: is_binary(value)
   defp is_valid_field_value?(:custom, value), do: is_map(value)
+  defp is_valid_field_value?(:retry, value), do: is_integer(value)
 
   defp field_error_message(field, value) do
     "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"

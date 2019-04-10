@@ -25,12 +25,18 @@ defmodule FaktoryWorker.WorkerSupervisor do
   defp map_worker(worker_module) do
     worker_opts = worker_module.worker_config()
     concurrency = Keyword.get(worker_opts, :concurrency, 1)
+    disable_fetch = Keyword.get(worker_opts, :disable_fetch, false)
 
     Enum.reduce(1..concurrency, [], fn _, acc ->
       worker_id = Random.worker_id()
       worker_name = :"#{worker_module}_#{worker_id}"
 
-      opts = [name: worker_name, worker_id: worker_id, worker_module: worker_module]
+      opts = [
+        name: worker_name,
+        worker_id: worker_id,
+        worker_module: worker_module,
+        disable_fetch: disable_fetch
+      ]
 
       [FaktoryWorker.Worker.Server.child_spec(opts) | acc]
     end)
