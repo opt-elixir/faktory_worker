@@ -1,11 +1,13 @@
 defmodule FaktoryWorker.Worker.ServerIntegrationTest do
   use ExUnit.Case, async: false
 
+  import FaktoryWorker.FaktoryTestHelpers
+
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
   alias FaktoryWorker.TestQueueWorker
 
-  # todo: flush before each test
+  setup :flush_faktory!
 
   describe "start_link/1" do
     test "should start the worker server and connect to faktory" do
