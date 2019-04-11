@@ -3,6 +3,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
+  import ExUnit.CaptureLog
 
   alias FaktoryWorker.Worker
   alias FaktoryWorker.Random
@@ -643,6 +644,98 @@ defmodule FaktoryWorker.WorkerTest do
       |> Worker.ack_job({:error, error})
 
       assert_received :fetch
+    end
+
+    test "should log when there was an error sending the ack" do
+      job_id = Random.string()
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      # the connection manager retries a failed request once
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      log_message =
+        capture_log(fn ->
+          opts
+          |> new_running_worker(job_id)
+          |> Worker.ack_job(:ok)
+        end)
+
+      assert log_message =~
+               "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a successful acknowledgement to faktory"
+    end
+
+    test "should log when there was an error sending the fail" do
+      job_id = Random.string()
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Undetected Error Type",
+        message: "exit",
+        backtrace: []
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      # the connection manager retries a failed request one more time
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      log_message =
+        capture_log(fn ->
+          opts
+          |> new_running_worker(job_id)
+          |> Worker.ack_job({:error, :exit})
+        end)
+
+      assert log_message =~
+               "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a failure acknowledgement to faktory"
     end
   end
 

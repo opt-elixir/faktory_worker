@@ -1,6 +1,8 @@
 defmodule FaktoryWorker.Worker do
   @moduledoc false
 
+  require Logger
+
   alias FaktoryWorker.ConnectionManager
   alias FaktoryWorker.ErrorFormatter
 
@@ -89,7 +91,7 @@ defmodule FaktoryWorker.Worker do
   def ack_job(state, :ok) do
     state.conn
     |> ConnectionManager.send_command({:ack, state.job_id})
-    |> handle_ack_response(state)
+    |> handle_ack_response(:ok, state)
   end
 
   def ack_job(state, {:error, reason}) do
@@ -106,7 +108,7 @@ defmodule FaktoryWorker.Worker do
 
     state.conn
     |> ConnectionManager.send_command({:fail, payload})
-    |> handle_ack_response(state)
+    |> handle_ack_response(:error, state)
   end
 
   defp handle_beat_response({{:ok, %{"state" => new_state}}, conn}, state) do
@@ -165,12 +167,21 @@ defmodule FaktoryWorker.Worker do
 
   defp schedule_fetch(state), do: state
 
-  defp handle_ack_response({{:ok, _}, conn}, state) do
+  defp handle_ack_response({{:ok, _}, conn}, _, state) do
     schedule_fetch(%{state | conn: conn, worker_state: :ok, job_ref: nil, job_id: nil})
   end
 
-  defp handle_ack_response({{:error, _}, conn}, state) do
-    # todo: need to work out what we should do here
+  defp handle_ack_response({{:error, _}, conn}, result, state) do
+    ack_type =
+      case result do
+        :ok -> "successful"
+        :error -> "failure"
+      end
+
+    Logger.error(
+      "[faktory-worker] Error #{inspect(self())} jid-#{state.job_id} Failed to send a #{ack_type} acknowledgement to faktory"
+    )
+
     %{state | conn: conn}
   end
 
