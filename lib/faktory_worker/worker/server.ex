@@ -27,13 +27,32 @@ defmodule FaktoryWorker.Worker.Server do
 
   @impl true
   def handle_continue({:setup_connection, opts}, _) do
-    worker = Worker.new(opts, self())
+    worker = Worker.new(opts)
     {:noreply, worker}
   end
 
   @impl true
   def handle_info(:beat, state) do
     state = Worker.send_beat(state)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:fetch, state) do
+    state = Worker.send_fetch(state)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({job_ref, _}, state) when is_reference(job_ref) do
+    Process.demonitor(job_ref, [:flush])
+    state = Worker.ack_job(state, :ok)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _job_ref, :process, _pid, reason}, state) do
+    state = Worker.ack_job(state, {:error, reason})
     {:noreply, state}
   end
 

@@ -7,6 +7,18 @@ defmodule FaktoryWorker.Job.JobTest do
     use FaktoryWorker.Job,
       queue: "test_queue",
       concurrency: 10
+
+    def perform(_), do: :ok
+  end
+
+  defmodule OverridesWorker do
+    use FaktoryWorker.Job,
+      queue: "override_queue",
+      concurrency: 5,
+      retry: 10,
+      custom: %{"unique_for" => 60}
+
+    def perform(_), do: :ok
   end
 
   describe "build_payload/3" do
@@ -48,9 +60,9 @@ defmodule FaktoryWorker.Job.JobTest do
     test "should not be able to specify an invalid data type for queue name" do
       data = %{hey: "there!"}
       opts = [queue: 123]
-      job = Job.build_payload(Test.Worker, data, opts)
+      error = Job.build_payload(Test.Worker, data, opts)
 
-      assert job == {:error, "The field 'queue' has an invalid value '123'"}
+      assert error == {:error, "The field 'queue' has an invalid value '123'"}
     end
 
     test "should be able to specify a custom map of values" do
@@ -64,9 +76,25 @@ defmodule FaktoryWorker.Job.JobTest do
     test "should not be able to specify an invalid data type for custom data" do
       data = %{hey: "there!"}
       opts = [custom: [1, 2, 3]]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'custom' has an invalid value '[1, 2, 3]'"}
+    end
+
+    test "should be able to specify the retry field" do
+      data = %{hey: "there!"}
+      opts = [retry: 20]
       job = Job.build_payload(Test.Worker, data, opts)
 
-      assert job == {:error, "The field 'custom' has an invalid value '[1, 2, 3]'"}
+      assert job.retry == 20
+    end
+
+    test "should not be able to specify invalid data for the retry field" do
+      data = %{hey: "there!"}
+      opts = [retry: "20"]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'retry' has an invalid value '\"20\"'"}
     end
 
     test "should set the job id to a long string" do
@@ -100,12 +128,29 @@ defmodule FaktoryWorker.Job.JobTest do
     end
   end
 
+  describe "worker_config/0" do
+    test "should default the retry field value" do
+      config = TestWorker.worker_config()
+
+      assert Keyword.get(config, :retry) == 25
+    end
+  end
+
   describe "__using__/1" do
     test "should make the worker config available via worker_config/0" do
       config = TestWorker.worker_config()
 
       assert Keyword.get(config, :queue) == "test_queue"
       assert Keyword.get(config, :concurrency) == 10
+    end
+
+    test "should be able to specify worker config fields" do
+      config = OverridesWorker.worker_config()
+
+      assert Keyword.get(config, :queue) == "override_queue"
+      assert Keyword.get(config, :concurrency) == 5
+      assert Keyword.get(config, :retry) == 10
+      assert Keyword.get(config, :custom) == %{"unique_for" => 60}
     end
   end
 end

@@ -47,6 +47,38 @@ defmodule FaktoryWorker.ProtocolTest do
       assert command == "FLUSH\r\n"
     end
 
+    test "should encode the 'FETCH' command with a list of queues" do
+      {:ok, command} = Protocol.encode_command({:fetch, ["queue_one", "queue_two"]})
+
+      assert command == "FETCH queue_one queue_two\r\n"
+    end
+
+    test "should encode the 'FETCH' command with default queue when list of queues is empty" do
+      {:ok, command} = Protocol.encode_command({:fetch, []})
+
+      assert command == "FETCH default\r\n"
+    end
+
+    test "should encode the 'ACK' command" do
+      {:ok, command} = Protocol.encode_command({:ack, "1234567890"})
+
+      assert command == "ACK {\"jid\":\"1234567890\"}\r\n"
+    end
+
+    test "should encode the 'FAIL' command" do
+      payload = %{
+        jid: "1234567890",
+        errtype: "Some error",
+        message: "It went bang!",
+        backtrace: ["file2.ex, line: 34", "file.ex, line: 1"]
+      }
+
+      {:ok, command} = Protocol.encode_command({:fail, payload})
+
+      assert command ==
+               "FAIL {\"backtrace\":[\"file2.ex, line: 34\",\"file.ex, line: 1\"],\"errtype\":\"Some error\",\"jid\":\"1234567890\",\"message\":\"It went bang!\"}\r\n"
+    end
+
     test "should return an error when attempting to encode bad data" do
       {:error, reason} = Protocol.encode_command({:hello, {:v, 2}})
 
@@ -77,6 +109,12 @@ defmodule FaktoryWorker.ProtocolTest do
       {:ok, resposne} = Protocol.decode_response("$592\r\n")
 
       assert resposne == {:bulk_string, 594}
+    end
+
+    test "should decode a null bulk string response" do
+      {:ok, resposne} = Protocol.decode_response("$-1\r\n")
+
+      assert resposne == :no_content
     end
 
     test "should decode bulk string response" do

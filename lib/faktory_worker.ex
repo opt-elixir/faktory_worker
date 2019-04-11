@@ -10,6 +10,7 @@ defmodule FaktoryWorker do
     children = [
       {FaktoryWorker.Pool, opts},
       {FaktoryWorker.PushPipeline, opts},
+      {FaktoryWorker.JobSupervisor, opts},
       {FaktoryWorker.WorkerSupervisor, opts}
     ]
 

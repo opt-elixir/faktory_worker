@@ -7,6 +7,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
+  alias FaktoryWorker.TestQueueWorker
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -39,7 +40,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "start_link/1" do
     test "should start the worker server" do
-      opts = [name: :test_worker_1, worker_id: Random.worker_id()]
+      opts = [name: :test_worker_1, worker_id: Random.worker_id(), worker_module: TestQueueWorker]
       pid = start_supervised!(Server.child_spec(opts))
 
       assert pid == Process.whereis(:test_worker_1)
@@ -54,6 +55,8 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -78,6 +81,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -88,7 +92,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
-  describe "worker lidecycle" do
+  describe "worker lifecycle" do
     test "should issue regular 'BEAT' commands" do
       worker_connection_mox()
 
@@ -114,7 +118,9 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
         beat_interval: 1,
+        disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -124,6 +130,88 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       # sleep 5 milliseconds to allow both beats to occur
       Process.sleep(5)
+
+      :ok = stop_supervised(:test_worker_1)
+    end
+
+    test "should send 'ACK' command when a job completes successfully" do
+      job_id = "f47ccc395ef9d9646118434f"
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      connection_close_mox()
+
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+
+      :sys.replace_state(pid, fn state ->
+        Map.put(state, :job_id, job_id)
+      end)
+
+      Process.send(pid, {:erlang.make_ref(), :ok}, [])
+
+      :ok = stop_supervised(:test_worker_1)
+    end
+
+    test "should send 'FAIL' command when a job fails to complete" do
+      job_id = "f47ccc395ef9d9646118434f"
+
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Elixir.RuntimeError",
+        message: "It went bang!",
+        backtrace: Enum.map(stacktrace, &Exception.format_stacktrace_entry/1)
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      connection_close_mox()
+
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+
+      :sys.replace_state(pid, fn state ->
+        Map.put(state, :job_id, job_id)
+      end)
+
+      reason = {%RuntimeError{message: "It went bang!"}, stacktrace}
+
+      Process.send(pid, {:DOWN, :erlang.make_ref(), :process, self(), reason}, [])
 
       :ok = stop_supervised(:test_worker_1)
     end
