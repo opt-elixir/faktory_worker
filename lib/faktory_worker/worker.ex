@@ -182,7 +182,7 @@ defmodule FaktoryWorker.Worker do
       "[faktory-worker] Error #{inspect(self())} jid-#{state.job_id} Failed to send a #{ack_type} acknowledgement to faktory"
     )
 
-    %{state | conn: conn}
+    schedule_fetch(%{state | conn: conn, worker_state: :ok, job_ref: nil, job_id: nil})
   end
 
   defp format_queue_for_command(queue) when is_binary(queue), do: [queue]

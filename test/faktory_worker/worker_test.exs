@@ -684,8 +684,12 @@ defmodule FaktoryWorker.WorkerTest do
           |> Worker.ack_job(:ok)
         end)
 
+      consume_initial_fetch_message()
+
       assert log_message =~
                "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a successful acknowledgement to faktory"
+
+      assert_received :fetch
     end
 
     test "should log when there was an error sending the fail" do
@@ -734,8 +738,12 @@ defmodule FaktoryWorker.WorkerTest do
           |> Worker.ack_job({:error, :exit})
         end)
 
+      consume_initial_fetch_message()
+
       assert log_message =~
                "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a failure acknowledgement to faktory"
+
+      assert_received :fetch
     end
   end
 
