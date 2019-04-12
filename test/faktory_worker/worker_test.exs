@@ -7,7 +7,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   alias FaktoryWorker.Worker
   alias FaktoryWorker.Random
-  alias FaktoryWorker.{DefaultWorker, TestQueueWorker}
+  alias FaktoryWorker.{DefaultWorker, TestQueueWorker, TimeoutQueueWorker}
 
   @fifteen_seconds 15_000
 
@@ -495,6 +495,130 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {TestQueueWorker, :perform, %{"hey" => "there!"}}, 50
 
       :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+  end
+
+  describe "stop_job/1" do
+    defp new_worker_with_job(opts) do
+      job_ref =
+        Task.Supervisor.async_nolink(
+          FaktoryWorker_job_supervisor,
+          fn -> Process.sleep(10_000) end,
+          shutdown: :brutal_kill
+        )
+
+      opts
+      |> Worker.new()
+      |> Map.put(:job_ref, job_ref)
+      |> Map.put(:job_id, "f47ccc395ef9d9646118434f")
+    end
+
+    test "should stop the job process" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = new_worker_with_job(opts)
+      Worker.stop_job(worker)
+
+      refute Process.alive?(worker.job_ref.pid)
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+
+    test "should send the 'FAIL' command" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      fail_payload =
+        Jason.encode!(%{
+          backtrace: [],
+          errtype: "Undetected Error Type",
+          jid: "f47ccc395ef9d9646118434f",
+          message: "\"Job Timeout\""
+        })
+
+      fail_command = "FAIL #{fail_payload}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      opts
+      |> new_worker_with_job()
+      |> Worker.stop_job()
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+
+    test "should return the updated worker state" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      state =
+        opts
+        |> new_worker_with_job()
+        |> Worker.stop_job()
+
+      assert state.job_id == nil
+      assert state.job_ref == nil
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+
+    test "should handle the job already having completed" do
+      worker_connection_mox()
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+      new_state = Worker.stop_job(worker)
+
+      assert worker == new_state
     end
   end
 

@@ -9,6 +9,7 @@ defmodule FaktoryWorker.Worker do
   @type t :: %__MODULE__{}
 
   @fifteen_seconds 15_000
+  @faktory_default_reserve_for 1800
   @valid_beat_states [:ok, :quiet, :running_job]
 
   defstruct [
@@ -87,6 +88,17 @@ defmodule FaktoryWorker.Worker do
 
   def send_fetch(state), do: state
 
+  @spec stop_job(state :: __MODULE__.t()) :: __MODULE__.t()
+  def stop_job(%{job_ref: job_ref} = state) when job_ref != nil do
+    state
+    |> job_supervisor_name()
+    |> Task.Supervisor.terminate_child(job_ref.pid)
+
+    ack_job(state, {:error, "Job Timeout"})
+  end
+
+  def stop_job(state), do: state
+
   @spec ack_job(state :: __MODULE__.t(), :ok | {:error, any()}) :: __MODULE__.t()
   def ack_job(state, :ok) do
     state.conn
@@ -140,10 +152,7 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_fetch_response({{:ok, job}, conn}, state) do
-    job_supervisor =
-      state.worker_config
-      |> faktory_name()
-      |> FaktoryWorker.JobSupervisor.format_supervisor_name()
+    job_supervisor = job_supervisor_name(state)
 
     job_ref =
       Task.Supervisor.async_nolink(
@@ -151,9 +160,15 @@ defmodule FaktoryWorker.Worker do
         state.worker_module,
         :perform,
         job["args"],
-        # make this whatever is set for the 'reserve_for' minus 20 seconds
-        shutdown: :infinity
+        shutdown: :brutal_kill
       )
+
+    reserve_for = Map.get(job, "reserve_for", @faktory_default_reserve_for)
+
+    # set a timeout for the job process of the configured reserve_for
+    # time minus 20 seconds to ensure the job is stopped before faktory
+    # can expire and retry it on the server
+    Process.send_after(self(), :job_timeout, reserve_for - 20)
 
     %{state | conn: conn, worker_state: :running_job, job_ref: job_ref, job_id: job["jid"]}
   end
@@ -188,7 +203,9 @@ defmodule FaktoryWorker.Worker do
   defp format_queue_for_command(queue) when is_binary(queue), do: [queue]
   defp format_queue_for_command(queues), do: queues
 
-  defp faktory_name(opts) do
-    Keyword.get(opts, :faktory_name, FaktoryWorker)
+  defp job_supervisor_name(%{worker_config: config}) do
+    config
+    |> Keyword.get(:faktory_name, FaktoryWorker)
+    |> FaktoryWorker.JobSupervisor.format_supervisor_name()
   end
 end

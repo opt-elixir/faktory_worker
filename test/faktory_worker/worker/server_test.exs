@@ -7,7 +7,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
-  alias FaktoryWorker.TestQueueWorker
+  alias FaktoryWorker.{TestQueueWorker, TimeoutQueueWorker}
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -214,6 +214,72 @@ defmodule FaktoryWorker.Worker.ServerTest do
       Process.send(pid, {:DOWN, :erlang.make_ref(), :process, self(), reason}, [])
 
       :ok = stop_supervised(:test_worker_1)
+    end
+
+    test "should send 'FAIL' command when a job times out" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      job =
+        Jason.encode!(%{
+          "args" => [%{"hey" => "there!"}],
+          "created_at" => "2019-04-09T12:14:07.6550641Z",
+          "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+          "jid" => "f47ccc395ef9d9646118434f",
+          "jobtype" => "FaktoryWorker.TestQueueWorker",
+          "reserve_for" => 20,
+          "queue" => "timeout_queue"
+        })
+
+      fail_payload =
+        Jason.encode!(%{
+          backtrace: [],
+          errtype: "Undetected Error Type",
+          jid: "f47ccc395ef9d9646118434f",
+          message: "\"Job Timeout\""
+        })
+
+      fail_command = "FAIL #{fail_payload}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH timeout_queue\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$#{byte_size(job)}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _, _ ->
+        {:ok, "#{job}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      connection_close_mox()
+
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+
+      Process.send(pid, :fetch, [])
+
+      Process.sleep(1000)
+
+      :ok = stop_supervised(:test_worker_1)
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
     end
   end
 end
