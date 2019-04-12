@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :logger, backends: []
+
 if Mix.env() == :test do
   if System.get_env("CI") do
     config :faktory_worker, :tls_server,

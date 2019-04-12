@@ -4,6 +4,7 @@ defmodule FaktoryWorker.Worker do
   require Logger
 
   alias FaktoryWorker.ConnectionManager
+  alias FaktoryWorker.WorkerLogger
   alias FaktoryWorker.ErrorFormatter
 
   @type t :: %__MODULE__{}
@@ -21,6 +22,8 @@ defmodule FaktoryWorker.Worker do
     :worker_config,
     :job_ref,
     :job_id,
+    :job_args,
+    :beat_state,
     :beat_interval,
     :beat_ref
   ]
@@ -46,6 +49,7 @@ defmodule FaktoryWorker.Worker do
       worker_state: :ok,
       worker_module: worker_module,
       worker_config: worker_module.worker_config(),
+      beat_state: :ok,
       beat_interval: beat_interval
     }
     |> schedule_beat()
@@ -125,11 +129,21 @@ defmodule FaktoryWorker.Worker do
 
   defp handle_beat_response({{:ok, %{"state" => new_state}}, conn}, state) do
     new_state = String.to_existing_atom(new_state)
-    %{state | conn: conn, worker_state: new_state}
+    WorkerLogger.log_beat(:ok, state.beat_state, state.worker_id)
+
+    %{state | conn: conn, worker_state: new_state, beat_state: :ok}
   end
 
-  defp handle_beat_response({_, conn}, state) do
-    %{state | conn: conn}
+  defp handle_beat_response({{:ok, _}, conn}, state) do
+    WorkerLogger.log_beat(:ok, state.beat_state, state.worker_id)
+
+    %{state | conn: conn, beat_state: :ok}
+  end
+
+  defp handle_beat_response({{:error, _}, conn}, state) do
+    WorkerLogger.log_beat(:error, state.beat_state, state.worker_id)
+
+    %{state | conn: conn, beat_state: :error}
   end
 
   defp handle_end_response({_, conn}, state) do
@@ -170,7 +184,14 @@ defmodule FaktoryWorker.Worker do
     # can expire and retry it on the server
     Process.send_after(self(), :job_timeout, reserve_for - 20)
 
-    %{state | conn: conn, worker_state: :running_job, job_ref: job_ref, job_id: job["jid"]}
+    %{
+      state
+      | conn: conn,
+        worker_state: :running_job,
+        job_ref: job_ref,
+        job_id: job["jid"],
+        job_args: job["args"]
+    }
   end
 
   defp schedule_fetch(%{disable_fetch: true} = state), do: state
@@ -182,22 +203,30 @@ defmodule FaktoryWorker.Worker do
 
   defp schedule_fetch(state), do: state
 
-  defp handle_ack_response({{:ok, _}, conn}, _, state) do
-    schedule_fetch(%{state | conn: conn, worker_state: :ok, job_ref: nil, job_id: nil})
+  defp handle_ack_response({{:ok, _}, conn}, ack_type, state) do
+    WorkerLogger.log_ack(ack_type, state.job_id, state.job_args)
+
+    schedule_fetch(%{
+      state
+      | conn: conn,
+        worker_state: :ok,
+        job_ref: nil,
+        job_id: nil,
+        job_args: nil
+    })
   end
 
-  defp handle_ack_response({{:error, _}, conn}, result, state) do
-    ack_type =
-      case result do
-        :ok -> "successful"
-        :error -> "failure"
-      end
+  defp handle_ack_response({{:error, _}, conn}, ack_type, state) do
+    WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job_args)
 
-    Logger.error(
-      "[faktory-worker] Error #{inspect(self())} jid-#{state.job_id} Failed to send a #{ack_type} acknowledgement to faktory"
-    )
-
-    schedule_fetch(%{state | conn: conn, worker_state: :ok, job_ref: nil, job_id: nil})
+    schedule_fetch(%{
+      state
+      | conn: conn,
+        worker_state: :ok,
+        job_ref: nil,
+        job_id: nil,
+        job_args: nil
+    })
   end
 
   defp format_queue_for_command(queue) when is_binary(queue), do: [queue]

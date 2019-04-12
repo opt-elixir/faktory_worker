@@ -239,6 +239,47 @@ defmodule FaktoryWorker.WorkerTest do
 
       assert result.worker_state == :terminate
     end
+
+    test "should log when the beat state changes" do
+      worker_id = Random.worker_id()
+      beat_command = "BEAT {\"wid\":\"#{worker_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^beat_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      # connection manager retries the command
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^beat_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, :closed}
+      end)
+
+      opts = [
+        worker_id: worker_id,
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+
+      log_message =
+        capture_log(fn ->
+          Worker.send_beat(worker)
+        end)
+
+      assert log_message =~ "[faktory-worker] Heartbeat Failed"
+    end
   end
 
   describe "send_end/1" do
@@ -661,6 +702,36 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.job_id == nil
     end
 
+    test "should log that a successful 'ACK' was sent to faktory" do
+      job_id = Random.string()
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      log_message =
+        capture_log(fn ->
+          opts
+          |> new_running_worker(job_id)
+          |> Worker.ack_job(:ok)
+        end)
+
+      assert log_message =~ "Succeeded jid-#{job_id}"
+    end
+
     test "should schedule the next fetch for a successful ack" do
       job_id = Random.string()
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
@@ -729,6 +800,49 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ok
       assert result.job_ref == nil
       assert result.job_id == nil
+    end
+
+    test "should log that a 'FAIL' was sent to faktory" do
+      job_id = Random.string()
+
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Elixir.RuntimeError",
+        message: "It went bang!",
+        backtrace: Enum.map(stacktrace, &Exception.format_stacktrace_entry/1)
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      error = {%RuntimeError{message: "It went bang!"}, stacktrace}
+
+      log_message =
+        capture_log(fn ->
+          opts
+          |> new_running_worker(job_id)
+          |> Worker.ack_job({:error, error})
+        end)
+
+      assert log_message =~ "Failed jid-#{job_id}"
     end
 
     test "should schedule the next fetch for an unsuccessful ack" do
@@ -811,7 +925,7 @@ defmodule FaktoryWorker.WorkerTest do
       consume_initial_fetch_message()
 
       assert log_message =~
-               "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a successful acknowledgement to faktory"
+               "Error sending 'ACK' acknowledgement to faktory"
 
       assert_received :fetch
     end
@@ -865,7 +979,7 @@ defmodule FaktoryWorker.WorkerTest do
       consume_initial_fetch_message()
 
       assert log_message =~
-               "[error] [faktory-worker] Error #{inspect(self())} jid-#{job_id} Failed to send a failure acknowledgement to faktory"
+               "Error sending 'FAIL' acknowledgement to faktory"
 
       assert_received :fetch
     end
