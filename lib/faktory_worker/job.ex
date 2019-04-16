@@ -9,14 +9,14 @@ defmodule FaktoryWorker.Job do
 
   # Look at supporting the following optional fields when pushing a job
   # priority
-  # reserve_for
   # at
   # backtrace
   # created_at
-  @optional_job_fields [:queue, :custom, :retry]
+  @optional_job_fields [:queue, :custom, :retry, :reserve_for]
 
   @default_worker_config [
-    retry: 25
+    retry: 25,
+    reserve_for: 1800
   ]
 
   defmacro __using__(using_opts \\ []) do
@@ -89,6 +89,7 @@ defmodule FaktoryWorker.Job do
   defp is_valid_field_value?(:queue, value), do: is_binary(value)
   defp is_valid_field_value?(:custom, value), do: is_map(value)
   defp is_valid_field_value?(:retry, value), do: is_integer(value)
+  defp is_valid_field_value?(:reserve_for, value), do: is_integer(value) and value >= 60
 
   defp field_error_message(field, value) do
     "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"

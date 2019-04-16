@@ -16,6 +16,7 @@ defmodule FaktoryWorker.Job.JobTest do
       queue: "override_queue",
       concurrency: 5,
       retry: 10,
+      reserve_for: 600,
       custom: %{"unique_for" => 60}
 
     def perform(_), do: :ok
@@ -97,6 +98,30 @@ defmodule FaktoryWorker.Job.JobTest do
       assert error == {:error, "The field 'retry' has an invalid value '\"20\"'"}
     end
 
+    test "should be able to specify the reserve_for field" do
+      data = %{hey: "there!"}
+      opts = [reserve_for: 120]
+      job = Job.build_payload(Test.Worker, data, opts)
+
+      assert job.reserve_for == 120
+    end
+
+    test "should not be able to specify invalid data for the reserve_for field" do
+      data = %{hey: "there!"}
+      opts = [reserve_for: "120"]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'reserve_for' has an invalid value '\"120\"'"}
+    end
+
+    test "should not be able to specify a value less than 60 for the reserve_for field" do
+      data = %{hey: "there!"}
+      opts = [reserve_for: 59]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'reserve_for' has an invalid value '59'"}
+    end
+
     test "should set the job id to a long string" do
       job = Job.build_payload(Test.Worker, 123, [])
 
@@ -134,6 +159,12 @@ defmodule FaktoryWorker.Job.JobTest do
 
       assert Keyword.get(config, :retry) == 25
     end
+
+    test "should default the reserve_for field value" do
+      config = TestWorker.worker_config()
+
+      assert Keyword.get(config, :reserve_for) == 1800
+    end
   end
 
   describe "__using__/1" do
@@ -150,6 +181,7 @@ defmodule FaktoryWorker.Job.JobTest do
       assert Keyword.get(config, :queue) == "override_queue"
       assert Keyword.get(config, :concurrency) == 5
       assert Keyword.get(config, :retry) == 10
+      assert Keyword.get(config, :reserve_for) == 600
       assert Keyword.get(config, :custom) == %{"unique_for" => 60}
     end
   end
