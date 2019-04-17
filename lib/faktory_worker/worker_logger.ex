@@ -21,16 +21,22 @@ defmodule FaktoryWorker.WorkerLogger do
     log_info("Error sending 'ACK' acknowledgement to faktory", jid, args)
   end
 
+  @spec log_fetch(:error, jid :: String.t(), args :: any()) :: :ok | {:error, any()}
   def log_failed_ack(:error, jid, args) do
     log_info("Error sending 'FAIL' acknowledgement to faktory", jid, args)
   end
 
+  @spec log_fetch(:error, wid :: String.t(), error :: String.t()) :: :ok | {:error, any()}
+  def log_fetch(:error, wid, error) do
+    log_info("Failed to fetch job due to '#{error}'", wid)
+  end
+
   defp log_info(message) do
-    Logger.info("[faktory-worker] #{message})")
+    Logger.info("[faktory-worker] #{message}")
   end
 
   defp log_info(outcome, wid) do
-    log_info("#{outcome} wid-#{wid})")
+    log_info("#{outcome} wid-#{wid}")
   end
 
   defp log_info(outcome, jid, args) do

@@ -82,7 +82,7 @@ defmodule FaktoryWorker.ConnectionManager do
   defp open_connection(opts) do
     case Connection.open(opts) do
       {:ok, connection} -> connection
-      _ -> nil
+      {:error, _reason} -> nil
     end
   end
 

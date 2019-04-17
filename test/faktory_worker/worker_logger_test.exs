@@ -112,4 +112,20 @@ defmodule FaktoryWorker.WorkerLoggerTest do
       assert log_message == ""
     end
   end
+
+  describe "log_fetch/3" do
+    test "should log a failed fetch" do
+      worker_id = Random.worker_id()
+
+      log_message =
+        capture_log(fn ->
+          WorkerLogger.log_fetch(:error, worker_id, "Shutdown in progress")
+        end)
+
+      assert log_message =~
+               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
+                 worker_id
+               }"
+    end
+  end
 end
