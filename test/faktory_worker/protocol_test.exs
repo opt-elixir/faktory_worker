@@ -105,6 +105,13 @@ defmodule FaktoryWorker.ProtocolTest do
       assert resposne == "Some error"
     end
 
+    test "should decode the '-SHUTDOWN' response" do
+      {:error, resposne} =
+        Protocol.decode_response("-SHUTDOWN Shutdown in progress\r\n")
+
+      assert resposne == "Shutdown in progress"
+    end
+
     test "should decode the '$n' bulk string response" do
       {:ok, resposne} = Protocol.decode_response("$592\r\n")
 
