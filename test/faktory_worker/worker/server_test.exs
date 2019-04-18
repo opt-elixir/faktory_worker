@@ -92,6 +92,33 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
+  describe "job timeout" do
+    test "should ignore a job timeout when the job completed before the timeout message is handled" do
+      worker_connection_mox()
+      connection_close_mox()
+
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+      monitor_ref = Process.monitor(pid)
+
+      # let the server fully boot up
+      %{worker_state: :ok} = :sys.get_state(pid)
+
+      Process.send(pid, :job_timeout, [])
+
+      refute_receive {:DOWN, ^monitor_ref, :process, ^pid, _}, 20
+
+      :ok = stop_supervised(:test_worker_1)
+    end
+  end
+
   describe "worker lifecycle" do
     test "should issue regular 'BEAT' commands" do
       worker_connection_mox()

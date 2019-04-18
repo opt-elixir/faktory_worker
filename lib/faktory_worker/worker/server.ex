@@ -42,6 +42,10 @@ defmodule FaktoryWorker.Worker.Server do
     {:noreply, state}
   end
 
+  def handle_info(:job_timeout, %{job_ref: nil} = state) do
+    {:noreply, state}
+  end
+
   def handle_info(:job_timeout, state) do
     Process.demonitor(state.job_ref.ref, [:flush])
     state = Worker.stop_job(state)
