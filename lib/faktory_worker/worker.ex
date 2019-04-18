@@ -186,7 +186,7 @@ defmodule FaktoryWorker.Worker do
     # set a timeout for the job process of the configured reserve_for
     # time minus 20 seconds to ensure the job is stopped before faktory
     # can expire and retry it on the server
-    Process.send_after(self(), :job_timeout, reserve_for - 20)
+    Process.send_after(self(), :job_timeout, (reserve_for - 20) * 1000)
 
     %{
       state
