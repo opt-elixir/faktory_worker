@@ -69,6 +69,8 @@ defmodule FaktoryWorker.Protocol do
 
   def decode_response("-ERR " <> rest), do: {:error, trim_newline(rest)}
 
+  def decode_response("-SHUTDOWN " <> rest), do: {:error, trim_newline(rest)}
+
   def decode_response("$-1\r\n"), do: {:ok, :no_content}
 
   def decode_response("$" <> rest) do

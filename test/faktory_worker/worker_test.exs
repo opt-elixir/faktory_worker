@@ -449,6 +449,68 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ok
     end
 
+    test "should log error, sleep, and schedule next fetch worker cannot connect" do
+      expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
+        {:error, :econnrefused}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
+        {:error, :econnrefused}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        retry_interval: 1,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+
+      log_message = capture_log(fn -> Worker.send_fetch(worker) end)
+
+      consume_initial_fetch_message()
+
+      assert log_message =~
+               "[faktory-worker] Failed to fetch job due to 'Failed to connect to Faktory' wid-#{
+                 worker.worker_id
+               }"
+
+      assert_received :fetch
+    end
+
+    test "should log error, sleep, and then successfully fetch next time" do
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "-SHUTDOWN Shutdown in progress\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        retry_interval: 1,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+
+      log_message = capture_log(fn -> Worker.send_fetch(worker) end)
+
+      consume_initial_fetch_message()
+
+      assert log_message =~
+               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
+                 worker.worker_id
+               }"
+
+      assert_received :fetch
+    end
+
     test "should set state to ':running_job' when there is a job to process" do
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 

@@ -10,6 +10,7 @@ defmodule FaktoryWorker.Worker do
   @type t :: %__MODULE__{}
 
   @fifteen_seconds 15_000
+  @five_seconds 5_000
   @faktory_default_reserve_for 1800
   @valid_beat_states [:ok, :quiet, :running_job]
 
@@ -23,6 +24,7 @@ defmodule FaktoryWorker.Worker do
     :job_ref,
     :job_id,
     :job_args,
+    :retry_interval,
     :beat_state,
     :beat_interval,
     :beat_ref
@@ -33,6 +35,7 @@ defmodule FaktoryWorker.Worker do
     worker_id = Keyword.fetch!(opts, :worker_id)
     worker_module = Keyword.fetch!(opts, :worker_module)
     beat_interval = Keyword.get(opts, :beat_interval, @fifteen_seconds)
+    retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch, false)
 
     connection =
@@ -49,6 +52,7 @@ defmodule FaktoryWorker.Worker do
       worker_state: :ok,
       worker_module: worker_module,
       worker_config: worker_module.worker_config(),
+      retry_interval: retry_interval,
       beat_state: :ok,
       beat_interval: beat_interval
     }
@@ -192,6 +196,12 @@ defmodule FaktoryWorker.Worker do
         job_id: job["jid"],
         job_args: job["args"]
     }
+  end
+
+  defp handle_fetch_response({{:error, reason}, conn}, state) do
+    WorkerLogger.log_fetch(:error, state.worker_id, reason)
+    Process.sleep(state.retry_interval)
+    %{state | conn: conn}
   end
 
   defp schedule_fetch(%{disable_fetch: true} = state), do: state
