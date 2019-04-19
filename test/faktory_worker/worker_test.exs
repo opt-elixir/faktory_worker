@@ -25,6 +25,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert worker.worker_module == TestQueueWorker
       assert worker.job_ref == nil
       assert worker.job_id == nil
+      assert worker.job_timeout_ref == nil
       assert worker.beat_interval == @fifteen_seconds
     end
 
@@ -594,6 +595,8 @@ defmodule FaktoryWorker.WorkerTest do
 
       assert %Task{} = result.job_ref
       assert result.job_id == "f47ccc395ef9d9646118434f"
+      assert result.job_args == [%{"_send_to_" => "#{inspect(self())}", "hey" => "there!"}]
+      assert is_reference(result.job_timeout_ref)
 
       assert_receive {TestQueueWorker, :perform, %{"hey" => "there!"}}, 50
 
@@ -614,6 +617,7 @@ defmodule FaktoryWorker.WorkerTest do
       |> Worker.new()
       |> Map.put(:job_ref, job_ref)
       |> Map.put(:job_id, "f47ccc395ef9d9646118434f")
+      |> Map.put(:job_timeout_ref, :erlang.make_ref())
     end
 
     test "should stop the job process" do
@@ -705,6 +709,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       assert state.job_id == nil
       assert state.job_ref == nil
+      assert state.job_timeout_ref == nil
 
       :ok = stop_supervised(FaktoryWorker_job_supervisor)
     end
@@ -722,6 +727,39 @@ defmodule FaktoryWorker.WorkerTest do
       new_state = Worker.stop_job(worker)
 
       assert worker == new_state
+    end
+
+    test "should cancel the job timeout timer" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TimeoutQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      timer_ref = Process.send_after(self(), :test_message, 5000)
+
+      worker =
+        opts
+        |> new_worker_with_job()
+        |> Map.put(:job_timeout_ref, timer_ref)
+        |> Worker.stop_job()
+
+      assert worker.job_timeout_ref == nil
+      assert Process.cancel_timer(timer_ref) == false
+
+      :ok = stop_supervised(FaktoryWorker_job_supervisor)
     end
   end
 
@@ -762,6 +800,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ok
       assert result.job_ref == nil
       assert result.job_id == nil
+      assert result.job_timeout_ref == nil
     end
 
     test "should log that a successful 'ACK' was sent to faktory" do
@@ -862,6 +901,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ok
       assert result.job_ref == nil
       assert result.job_id == nil
+      assert result.job_timeout_ref == nil
     end
 
     test "should log that a 'FAIL' was sent to faktory" do
@@ -1044,6 +1084,83 @@ defmodule FaktoryWorker.WorkerTest do
                "Error sending 'FAIL' acknowledgement to faktory"
 
       assert_received :fetch
+    end
+
+    test "should cancel the job timeout when acknowledging a successful job" do
+      job_id = Random.string()
+      ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      timer_ref = Process.send_after(self(), :test_message, 5000)
+
+      result =
+        opts
+        |> new_running_worker(job_id)
+        |> Map.put(:job_timeout_ref, timer_ref)
+        |> Worker.ack_job(:ok)
+
+      assert result.job_timeout_ref == nil
+      assert Process.cancel_timer(timer_ref) == false
+    end
+
+    test "should cancel the job timeout when acknowledging a failed job" do
+      job_id = Random.string()
+
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      fail_payload = %{
+        jid: job_id,
+        errtype: "Elixir.RuntimeError",
+        message: "It went bang!",
+        backtrace: Enum.map(stacktrace, &Exception.format_stacktrace_entry/1)
+      }
+
+      fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      error = {%RuntimeError{message: "It went bang!"}, stacktrace}
+      timer_ref = Process.send_after(self(), :test_message, 5000)
+
+      result =
+        opts
+        |> new_running_worker(job_id)
+        |> Map.put(:job_timeout_ref, timer_ref)
+        |> Worker.ack_job({:error, error})
+
+      assert result.job_timeout_ref == nil
+      assert Process.cancel_timer(timer_ref) == false
     end
   end
 
