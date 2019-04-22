@@ -24,6 +24,7 @@ defmodule FaktoryWorker.Worker do
     :job_ref,
     :job_id,
     :job_args,
+    :job_timeout_ref,
     :retry_interval,
     :beat_state,
     :beat_interval,
@@ -181,17 +182,19 @@ defmodule FaktoryWorker.Worker do
         shutdown: :brutal_kill
       )
 
-    reserve_for = Map.get(job, "reserve_for", @faktory_default_reserve_for)
+    reserve_for_seconds = Map.get(job, "reserve_for", @faktory_default_reserve_for)
 
     # set a timeout for the job process of the configured reserve_for
     # time minus 20 seconds to ensure the job is stopped before faktory
     # can expire and retry it on the server
-    Process.send_after(self(), :job_timeout, (reserve_for - 20) * 1000)
+    timeout_duration = (reserve_for_seconds - 20) * 1000
+    timeout_ref = Process.send_after(self(), :job_timeout, timeout_duration)
 
     %{
       state
       | conn: conn,
         worker_state: :running_job,
+        job_timeout_ref: timeout_ref,
         job_ref: job_ref,
         job_id: job["jid"],
         job_args: job["args"]
@@ -215,11 +218,13 @@ defmodule FaktoryWorker.Worker do
 
   defp handle_ack_response({{:ok, _}, conn}, ack_type, state) do
     WorkerLogger.log_ack(ack_type, state.job_id, state.job_args)
+    cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
       state
       | conn: conn,
         worker_state: :ok,
+        job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
         job_args: nil
@@ -228,11 +233,13 @@ defmodule FaktoryWorker.Worker do
 
   defp handle_ack_response({{:error, _}, conn}, ack_type, state) do
     WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job_args)
+    cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
       state
       | conn: conn,
         worker_state: :ok,
+        job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
         job_args: nil
@@ -246,5 +253,11 @@ defmodule FaktoryWorker.Worker do
     config
     |> Keyword.get(:faktory_name, FaktoryWorker)
     |> FaktoryWorker.JobSupervisor.format_supervisor_name()
+  end
+
+  defp cancel_timer(nil), do: :ok
+
+  defp cancel_timer(timer_ref) do
+    Process.cancel_timer(timer_ref)
   end
 end
