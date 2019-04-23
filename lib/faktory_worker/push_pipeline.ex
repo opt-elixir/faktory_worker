@@ -17,7 +17,7 @@ defmodule FaktoryWorker.PushPipeline do
       context: %{name: opts[:name]},
       producers: [
         default: [
-          module: {FaktoryWorker.PushPipeline.Producer, []},
+          module: {FaktoryWorker.PushPipeline.Producer, pool_config},
           stages: pool_size
         ]
       ],
