@@ -16,13 +16,14 @@ defmodule FaktoryWorker.WorkerSupervisor do
     children =
       opts
       |> Keyword.get(:workers, [])
-      |> Enum.map(&map_worker/1)
+      |> Enum.map(&map_worker(&1, opts))
       |> List.flatten()
 
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  defp map_worker(worker_module) do
+  defp map_worker(worker_module, opts) do
+    connection_opts = Keyword.get(opts, :connection, [])
     worker_opts = worker_module.worker_config()
     concurrency = Keyword.get(worker_opts, :concurrency, 1)
     disable_fetch = Keyword.get(worker_opts, :disable_fetch, false)
@@ -33,6 +34,7 @@ defmodule FaktoryWorker.WorkerSupervisor do
 
       opts = [
         name: worker_name,
+        connection: connection_opts,
         worker_id: worker_id,
         worker_module: worker_module,
         disable_fetch: disable_fetch
