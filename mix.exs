@@ -26,7 +26,7 @@ defmodule FaktoryWorker.MixProject do
 
   defp deps do
     [
-      {:broadway, "~> 0.1.0"},
+      {:broadway, "~> 0.2.0"},
       {:certifi, "~> 2.5"},
       {:ex_doc, "~> 0.20.0", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
