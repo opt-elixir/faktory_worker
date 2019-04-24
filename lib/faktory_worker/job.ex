@@ -5,8 +5,6 @@ defmodule FaktoryWorker.Job do
 
   alias FaktoryWorker.Random
 
-  @callback perform(args :: any()) :: any()
-
   # Look at supporting the following optional fields when pushing a job
   # priority
   # at
