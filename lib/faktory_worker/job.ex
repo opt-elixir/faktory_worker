@@ -23,8 +23,6 @@ defmodule FaktoryWorker.Job do
     using_opts = Keyword.merge(@default_worker_config, using_opts)
 
     quote do
-      @behaviour FaktoryWorker.Job
-
       def worker_config(), do: unquote(using_opts)
 
       def perform_async(job, opts \\ []) do
