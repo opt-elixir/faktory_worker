@@ -13,11 +13,6 @@ defmodule FaktoryWorker.Socket.Tcp do
   end
 
   @impl true
-  def close(%{socket: socket}) do
-    :gen_tcp.close(socket)
-  end
-
-  @impl true
   def send(%{socket: socket}, payload) do
     :gen_tcp.send(socket, payload)
   end

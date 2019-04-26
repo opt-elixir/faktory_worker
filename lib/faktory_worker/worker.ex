@@ -151,8 +151,7 @@ defmodule FaktoryWorker.Worker do
     %{state | conn: conn, beat_state: :error}
   end
 
-  defp handle_end_response({_, conn}, state) do
-    %{conn: nil} = ConnectionManager.close_connection(conn)
+  defp handle_end_response({{:ok, :closed}, _}, state) do
     %{state | worker_state: :ended, conn: nil}
   end
 

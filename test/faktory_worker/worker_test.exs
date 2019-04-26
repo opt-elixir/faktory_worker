@@ -291,14 +291,6 @@ defmodule FaktoryWorker.WorkerTest do
         :ok
       end)
 
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :close, fn _ ->
-        :ok
-      end)
-
       opts = [
         worker_id: Random.worker_id(),
         worker_module: TestQueueWorker,

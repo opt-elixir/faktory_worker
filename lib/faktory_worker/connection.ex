@@ -12,8 +12,6 @@ defmodule FaktoryWorker.Connection do
   @enforce_keys [:host, :port, :socket, :socket_handler]
   defstruct [:host, :port, :socket, :socket_handler]
 
-  @empty_connection %{host: nil, port: nil, socket: nil, socket_handler: nil}
-
   @spec open(opts :: keyword()) :: {:ok, __MODULE__.t()} | {:error, term()}
   def open(opts \\ []) do
     use_tls = Keyword.get(opts, :use_tls, false)
@@ -27,14 +25,15 @@ defmodule FaktoryWorker.Connection do
     end
   end
 
-  @spec close(connection :: __MODULE__.t()) :: {:ok, __MODULE__.t()}
-  def close(%{socket_handler: socket_handler} = connection) do
-    socket_handler.close(connection)
-    {:ok, struct(__MODULE__, @empty_connection)}
+  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) ::
+          Protocol.protocol_response() | {:ok, :closed}
+  def send_command(%{socket_handler: socket_handler} = connection, :end) do
+    with {:ok, payload} <- Protocol.encode_command(:end),
+         :ok <- socket_handler.send(connection, payload) do
+      {:ok, :closed}
+    end
   end
 
-  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) ::
-          Protocol.protocol_response()
   def send_command(%{socket_handler: socket_handler} = connection, command) do
     with {:ok, payload} <- Protocol.encode_command(command),
          :ok <- socket_handler.send(connection, payload),

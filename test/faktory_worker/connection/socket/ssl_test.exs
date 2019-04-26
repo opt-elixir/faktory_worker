@@ -27,18 +27,6 @@ defmodule FaktoryWorker.Connection.Socket.SslTest do
     end
   end
 
-  describe "close/1" do
-    test "should close a socket connection to faktory" do
-      opts = [tls_verify: false]
-      {:ok, %Connection{} = connection} = Ssl.connect(@tls_host, @tls_port, opts)
-
-      :ok = Ssl.close(connection)
-      {:sslsocket, {:gen_tcp, socket, _, _}, _} = connection.socket
-
-      assert :erlang.port_info(socket) == :undefined
-    end
-  end
-
   describe "send/1" do
     test "should be able to send a packet to faktory" do
       opts = [tls_verify: false]

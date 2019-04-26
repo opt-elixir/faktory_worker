@@ -13,11 +13,6 @@ defmodule FaktoryWorker.Socket.Ssl do
   end
 
   @impl true
-  def close(%{socket: socket}) do
-    :ssl.close(socket)
-  end
-
-  @impl true
   def send(%{socket: socket}, payload) do
     :ssl.send(socket, payload)
   end
