@@ -20,12 +20,14 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
 
       pid = start_supervised!(Server.child_spec(opts))
 
-      %{conn: connection_manager} = :sys.get_state(pid)
+      %{conn_pid: conn_pid} = :sys.get_state(pid)
 
-      assert connection_manager.conn.host == "localhost"
-      assert connection_manager.conn.port == 7419
-      assert connection_manager.conn.socket_handler == FaktoryWorker.Socket.Tcp
-      assert is_port(connection_manager.conn.socket)
+      state = :sys.get_state(conn_pid)
+
+      assert state.conn.host == "localhost"
+      assert state.conn.port == 7419
+      assert state.conn.socket_handler == FaktoryWorker.Socket.Tcp
+      assert is_port(state.conn.socket)
 
       :ok = stop_supervised(:test_worker_1)
     end

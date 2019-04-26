@@ -186,7 +186,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       assert reason == "Something went wrong"
     end
 
-    test "should not call not call recv function when sending an END command" do
+    test "should not call recv function when sending an END command" do
       connection_mox()
 
       expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->

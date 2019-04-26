@@ -1,5 +1,5 @@
 defmodule FaktoryWorker.WorkerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
@@ -11,6 +11,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   @fifteen_seconds 15_000
 
+  setup :set_mox_global
   setup :verify_on_exit!
 
   describe "new/2" do
@@ -54,7 +55,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker = Worker.new(opts)
 
-      assert worker.conn != nil
+      assert is_pid(worker.conn_pid)
     end
 
     test "should schedule a beat to be triggered" do
@@ -302,12 +303,32 @@ defmodule FaktoryWorker.WorkerTest do
         |> Worker.new()
         |> Worker.send_end()
 
-      assert result.conn == nil
+      assert result.conn_pid == nil
       assert result.worker_state == :ended
     end
 
     test "should not send 'END' command when no connection has been setup" do
       assert Worker.send_end(%{}) == %{}
+    end
+
+    test "should not send 'END' if the connection is no longer available" do
+      worker_connection_mox()
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+
+      Process.unlink(worker.conn_pid)
+      Process.exit(worker.conn_pid, :shutdown)
+
+      result = Worker.send_end(worker)
+
+      assert result.conn_pid == nil
+      assert result.worker_state == :ended
     end
   end
 

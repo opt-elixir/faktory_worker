@@ -9,6 +9,8 @@ defmodule FaktoryWorker.Connection do
 
   @type t :: %__MODULE__{}
 
+  @type response :: Protocol.protocol_response() | {:ok, :closed}
+
   @enforce_keys [:host, :port, :socket, :socket_handler]
   defstruct [:host, :port, :socket, :socket_handler]
 
@@ -25,8 +27,7 @@ defmodule FaktoryWorker.Connection do
     end
   end
 
-  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) ::
-          Protocol.protocol_response() | {:ok, :closed}
+  @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) :: response()
   def send_command(%{socket_handler: socket_handler} = connection, :end) do
     with {:ok, payload} <- Protocol.encode_command(:end),
          :ok <- socket_handler.send(connection, payload) do

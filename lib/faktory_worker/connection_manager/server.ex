@@ -11,7 +11,7 @@ defmodule FaktoryWorker.ConnectionManager.Server do
   end
 
   @spec send_command(connection_manager :: atom() | pid(), command :: Protocol.protocol_command()) ::
-          {:ok, any()} | {:error, any()}
+          FaktoryWorker.Connection.response()
   def send_command(connection_manager, command) do
     GenServer.call(connection_manager, {:send_command, command})
   end
@@ -25,5 +25,10 @@ defmodule FaktoryWorker.ConnectionManager.Server do
   def handle_call({:send_command, command}, _, state) do
     {result, state} = ConnectionManager.send_command(state, command)
     {:reply, result, state}
+  end
+
+  @impl true
+  def handle_info({:ssl_closed, _}, state) do
+    {:stop, :normal, %{state | conn: nil}}
   end
 end

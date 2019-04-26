@@ -62,14 +62,35 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       pid = start_supervised!(Server.child_spec(opts))
 
-      %{conn: connection_manager} = :sys.get_state(pid)
+      %{conn_pid: conn_pid} = :sys.get_state(pid)
 
-      assert connection_manager.conn.host == "localhost"
-      assert connection_manager.conn.port == 7419
-      assert connection_manager.conn.socket_handler == FaktoryWorker.SocketMock
-      assert connection_manager.conn.socket == :test_socket
+      state = :sys.get_state(conn_pid)
+
+      assert state.conn.host == "localhost"
+      assert state.conn.port == 7419
+      assert state.conn.socket_handler == FaktoryWorker.SocketMock
+      assert state.conn.socket == :test_socket
 
       :ok = stop_supervised(:test_worker_1)
+    end
+  end
+
+  describe "handle_info/2" do
+    test "should handle the connection process exiting and stop the worker" do
+      worker_connection_mox()
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+      state = :sys.get_state(pid)
+
+      {:stop, :normal, state} = Server.handle_info({:EXIT, state.conn_pid, :shutdown}, state)
+
+      assert state.conn_pid == nil
     end
   end
 
