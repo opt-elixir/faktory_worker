@@ -70,16 +70,8 @@ defmodule FaktoryWorker.ConnectionHelpers do
 
   defmacro connection_close_mox() do
     quote do
-      expect(FaktoryWorker.SocketMock, :close, fn _ ->
-        :ok
-      end)
-
       expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->
         :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
       end)
     end
   end

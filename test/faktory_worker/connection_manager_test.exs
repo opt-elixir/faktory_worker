@@ -42,23 +42,6 @@ defmodule FaktoryWorker.ConnectionManagerTest do
     end
   end
 
-  describe "close_connection/1" do
-    test "should close and return a nil connection" do
-      connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :close, fn _ ->
-        :ok
-      end)
-
-      opts = [socket_handler: FaktoryWorker.SocketMock]
-      manager = ConnectionManager.new(opts)
-
-      %ConnectionManager{conn: connection} = ConnectionManager.close_connection(manager)
-
-      assert connection == nil
-    end
-  end
-
   describe "send_command/2" do
     test "should be able to send a command" do
       connection_mox()
@@ -208,6 +191,21 @@ defmodule FaktoryWorker.ConnectionManagerTest do
                socket: :test_socket,
                socket_handler: FaktoryWorker.SocketMock
              }
+    end
+
+    test "should unset the connection state when receiving an expected close response" do
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->
+        :ok
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+      state = ConnectionManager.new(opts)
+
+      {{:ok, :closed}, state} = ConnectionManager.send_command(state, :end)
+
+      assert state.conn == nil
     end
   end
 end

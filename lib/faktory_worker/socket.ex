@@ -6,8 +6,6 @@ defmodule FaktoryWorker.Socket do
   @callback connect(host :: String.t(), port :: pos_integer(), opts :: keyword()) ::
               {:ok, Connection.t()} | {:error, term()}
 
-  @callback close(connection :: Connection.t()) :: :ok
-
   @callback send(connection :: Connection.t(), payload :: String.t()) ::
               :ok | {:error, term()}
 

@@ -49,17 +49,12 @@ defmodule FaktoryWorker.ConnectionManager do
 
         {{:ok, reason}, state}
 
+      {{:ok, :closed}, state} ->
+        {{:ok, :closed}, %{state | conn: nil}}
+
       result ->
         result
     end
-  end
-
-  @spec close_connection(state :: ConnectionManager.t()) :: ConnectionManager.t()
-  def close_connection(%{conn: nil} = state), do: state
-
-  def close_connection(%{conn: conn} = state) do
-    {:ok, _} = Connection.close(conn)
-    %{state | conn: nil}
   end
 
   defp try_send_command(%{conn: nil, opts: opts} = state, command) do
