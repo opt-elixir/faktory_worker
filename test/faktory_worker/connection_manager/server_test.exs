@@ -10,7 +10,7 @@ defmodule FaktoryWorker.ConnectionManager.ServerTest do
 
   describe "handle_info/2" do
     test "should handle the ssl_closed error message" do
-      # the nil values in this error are replaceing implementation details in the :ssl module
+      # the nil values in this error are replacing implementation details in the :ssl module
       # and are not used by the server
       error =
         {:ssl_closed, {:sslsocket, {:gen_tcp, nil, :tls_connection, :undefined}, [nil, nil]}}
