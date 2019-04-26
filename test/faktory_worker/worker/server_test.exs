@@ -75,6 +75,25 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
+  describe "handle_info/2" do
+    test "should handle the connection process exiting and stop the worker" do
+      worker_connection_mox()
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+      state = :sys.get_state(pid)
+
+      {:stop, :normal, state} = Server.handle_info({:EXIT, state.conn_pid, :shutdown}, state)
+
+      assert state.conn_pid == nil
+    end
+  end
+
   describe "termiante/2" do
     test "should send the 'END' command when the server terminates" do
       worker_connection_mox()

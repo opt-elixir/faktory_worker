@@ -62,10 +62,16 @@ defmodule FaktoryWorker.Worker do
   end
 
   @spec send_end(state :: __MODULE__.t()) :: __MODULE__.t()
-  def send_end(%{conn_pid: conn_pid} = state) do
-    conn_pid
-    |> send_command(:end)
-    |> handle_end_response(state)
+  def send_end(%{conn_pid: conn_pid} = state) when is_pid(conn_pid) do
+    # only attempt to send the end command if there is a chance
+    # the connection is still available
+    if Process.alive?(conn_pid) do
+      conn_pid
+      |> send_command(:end)
+      |> handle_end_response(state)
+    else
+      handle_end_response({:ok, :closed}, state)
+    end
   end
 
   def send_end(state), do: state

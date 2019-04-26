@@ -29,7 +29,6 @@ defmodule FaktoryWorker.ConnectionManager.Server do
 
   @impl true
   def handle_info({:ssl_closed, _}, state) do
-    state = %{state | conn: nil}
-    {:noreply, state}
+    {:stop, :normal, %{state | conn: nil}}
   end
 end

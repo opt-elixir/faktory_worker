@@ -310,6 +310,26 @@ defmodule FaktoryWorker.WorkerTest do
     test "should not send 'END' command when no connection has been setup" do
       assert Worker.send_end(%{}) == %{}
     end
+
+    test "should not send 'END' if the connection is no longer available" do
+      worker_connection_mox()
+
+      opts = [
+        worker_id: Random.worker_id(),
+        worker_module: TestQueueWorker,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      worker = Worker.new(opts)
+
+      Process.unlink(worker.conn_pid)
+      Process.exit(worker.conn_pid, :shutdown)
+
+      result = Worker.send_end(worker)
+
+      assert result.conn_pid == nil
+      assert result.worker_state == :ended
+    end
   end
 
   describe "send_fetch/1" do

@@ -63,6 +63,10 @@ defmodule FaktoryWorker.Worker.Server do
     {:noreply, state}
   end
 
+  def handle_info({:EXIT, conn_pid, _reason}, %{conn_pid: conn_pid} = state) do
+    {:stop, :normal, %{state | conn_pid: nil}}
+  end
+
   @impl true
   def terminate(_reason, state) do
     Worker.send_end(state)

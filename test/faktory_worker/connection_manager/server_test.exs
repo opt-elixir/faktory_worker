@@ -24,7 +24,7 @@ defmodule FaktoryWorker.ConnectionManager.ServerTest do
         }
       }
 
-      {:noreply, new_state} = Server.handle_info(error, state)
+      {:stop, :normal, new_state} = Server.handle_info(error, state)
 
       assert new_state.conn == nil
     end
