@@ -26,4 +26,10 @@ defmodule FaktoryWorker.ConnectionManager.Server do
     {result, state} = ConnectionManager.send_command(state, command)
     {:reply, result, state}
   end
+
+  @impl true
+  def handle_info({:ssl_closed, _}, state) do
+    state = %{state | conn: nil}
+    {:noreply, state}
+  end
 end
