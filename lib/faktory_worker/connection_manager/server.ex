@@ -11,7 +11,7 @@ defmodule FaktoryWorker.ConnectionManager.Server do
   end
 
   @spec send_command(connection_manager :: atom() | pid(), command :: Protocol.protocol_command()) ::
-          {:ok, any()} | {:error, any()}
+          FaktoryWorker.Connection.response()
   def send_command(connection_manager, command) do
     GenServer.call(connection_manager, {:send_command, command})
   end

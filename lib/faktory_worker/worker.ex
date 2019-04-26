@@ -15,7 +15,7 @@ defmodule FaktoryWorker.Worker do
   @valid_beat_states [:ok, :quiet, :running_job]
 
   defstruct [
-    :conn,
+    :conn_pid,
     :disable_fetch,
     :worker_id,
     :worker_state,
@@ -39,15 +39,15 @@ defmodule FaktoryWorker.Worker do
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch, false)
 
-    connection =
+    {:ok, conn_pid} =
       opts
       |> Keyword.get(:connection, [])
       |> Keyword.put(:is_worker, true)
       |> Keyword.put(:worker_id, worker_id)
-      |> ConnectionManager.new()
+      |> ConnectionManager.Server.start_link()
 
     %__MODULE__{
-      conn: connection,
+      conn_pid: conn_pid,
       disable_fetch: disable_fetch,
       worker_id: worker_id,
       worker_state: :ok,
@@ -62,9 +62,9 @@ defmodule FaktoryWorker.Worker do
   end
 
   @spec send_end(state :: __MODULE__.t()) :: __MODULE__.t()
-  def send_end(%{conn: conn} = state) do
-    conn
-    |> ConnectionManager.send_command(:end)
+  def send_end(%{conn_pid: conn_pid} = state) do
+    conn_pid
+    |> send_command(:end)
     |> handle_end_response(state)
   end
 
@@ -73,8 +73,8 @@ defmodule FaktoryWorker.Worker do
   @spec send_beat(state :: __MODULE__.t()) :: __MODULE__.t()
   def send_beat(%{worker_state: worker_state} = state)
       when worker_state in @valid_beat_states do
-    state.conn
-    |> ConnectionManager.send_command({:beat, state.worker_id})
+    state.conn_pid
+    |> send_command({:beat, state.worker_id})
     |> handle_beat_response(state)
     |> clear_beat_ref()
     |> schedule_beat()
@@ -89,8 +89,8 @@ defmodule FaktoryWorker.Worker do
       |> Keyword.get(:queue, [])
       |> format_queue_for_command()
 
-    state.conn
-    |> ConnectionManager.send_command({:fetch, queues})
+    state.conn_pid
+    |> send_command({:fetch, queues})
     |> handle_fetch_response(state)
     |> schedule_fetch()
   end
@@ -110,8 +110,8 @@ defmodule FaktoryWorker.Worker do
 
   @spec ack_job(state :: __MODULE__.t(), :ok | {:error, any()}) :: __MODULE__.t()
   def ack_job(state, :ok) do
-    state.conn
-    |> ConnectionManager.send_command({:ack, state.job_id})
+    state.conn_pid
+    |> send_command({:ack, state.job_id})
     |> handle_ack_response(:ok, state)
   end
 
@@ -127,32 +127,32 @@ defmodule FaktoryWorker.Worker do
       backtrace: error.stacktrace
     }
 
-    state.conn
-    |> ConnectionManager.send_command({:fail, payload})
+    state.conn_pid
+    |> send_command({:fail, payload})
     |> handle_ack_response(:error, state)
   end
 
-  defp handle_beat_response({{:ok, %{"state" => new_state}}, conn}, state) do
+  defp handle_beat_response({:ok, %{"state" => new_state}}, state) do
     new_state = String.to_existing_atom(new_state)
     WorkerLogger.log_beat(:ok, state.beat_state, state.worker_id)
 
-    %{state | conn: conn, worker_state: new_state, beat_state: :ok}
+    %{state | worker_state: new_state, beat_state: :ok}
   end
 
-  defp handle_beat_response({{:ok, _}, conn}, state) do
+  defp handle_beat_response({:ok, _}, state) do
     WorkerLogger.log_beat(:ok, state.beat_state, state.worker_id)
 
-    %{state | conn: conn, beat_state: :ok}
+    %{state | beat_state: :ok}
   end
 
-  defp handle_beat_response({{:error, _}, conn}, state) do
+  defp handle_beat_response({:error, _}, state) do
     WorkerLogger.log_beat(:error, state.beat_state, state.worker_id)
 
-    %{state | conn: conn, beat_state: :error}
+    %{state | beat_state: :error}
   end
 
-  defp handle_end_response({{:ok, :closed}, _}, state) do
-    %{state | worker_state: :ended, conn: nil}
+  defp handle_end_response({:ok, :closed}, state) do
+    %{state | worker_state: :ended, conn_pid: nil}
   end
 
   defp clear_beat_ref(state), do: %{state | beat_ref: nil}
@@ -165,11 +165,9 @@ defmodule FaktoryWorker.Worker do
 
   defp schedule_beat(state), do: state
 
-  defp handle_fetch_response({{:ok, :no_content}, conn}, state) do
-    %{state | conn: conn}
-  end
+  defp handle_fetch_response({:ok, :no_content}, state), do: state
 
-  defp handle_fetch_response({{:ok, job}, conn}, state) do
+  defp handle_fetch_response({:ok, job}, state) do
     job_supervisor = job_supervisor_name(state)
 
     job_ref =
@@ -191,8 +189,7 @@ defmodule FaktoryWorker.Worker do
 
     %{
       state
-      | conn: conn,
-        worker_state: :running_job,
+      | worker_state: :running_job,
         job_timeout_ref: timeout_ref,
         job_ref: job_ref,
         job_id: job["jid"],
@@ -200,10 +197,10 @@ defmodule FaktoryWorker.Worker do
     }
   end
 
-  defp handle_fetch_response({{:error, reason}, conn}, state) do
+  defp handle_fetch_response({:error, reason}, state) do
     WorkerLogger.log_fetch(:error, state.worker_id, reason)
     Process.sleep(state.retry_interval)
-    %{state | conn: conn}
+    state
   end
 
   defp schedule_fetch(%{disable_fetch: true} = state), do: state
@@ -215,14 +212,13 @@ defmodule FaktoryWorker.Worker do
 
   defp schedule_fetch(state), do: state
 
-  defp handle_ack_response({{:ok, _}, conn}, ack_type, state) do
+  defp handle_ack_response({:ok, _}, ack_type, state) do
     WorkerLogger.log_ack(ack_type, state.job_id, state.job_args)
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
       state
-      | conn: conn,
-        worker_state: :ok,
+      | worker_state: :ok,
         job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
@@ -230,14 +226,13 @@ defmodule FaktoryWorker.Worker do
     })
   end
 
-  defp handle_ack_response({{:error, _}, conn}, ack_type, state) do
+  defp handle_ack_response({:error, _}, ack_type, state) do
     WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job_args)
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
       state
-      | conn: conn,
-        worker_state: :ok,
+      | worker_state: :ok,
         job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
@@ -258,5 +253,9 @@ defmodule FaktoryWorker.Worker do
 
   defp cancel_timer(timer_ref) do
     Process.cancel_timer(timer_ref)
+  end
+
+  defp send_command(conn_pid, command) do
+    ConnectionManager.Server.send_command(conn_pid, command)
   end
 end

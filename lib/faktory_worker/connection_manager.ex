@@ -29,7 +29,7 @@ defmodule FaktoryWorker.ConnectionManager do
           command :: FaktoryWorker.Protocol.protocol_command(),
           allow_retry :: boolean()
         ) ::
-          {Protocol.protocol_response(), ConnectionManager.t()}
+          {Connection.response(), ConnectionManager.t()}
   def send_command(state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->

@@ -1,5 +1,5 @@
 defmodule FaktoryWorker.WorkerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
@@ -11,6 +11,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   @fifteen_seconds 15_000
 
+  setup :set_mox_global
   setup :verify_on_exit!
 
   describe "new/2" do
@@ -54,7 +55,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker = Worker.new(opts)
 
-      assert worker.conn != nil
+      assert is_pid(worker.conn_pid)
     end
 
     test "should schedule a beat to be triggered" do
@@ -302,7 +303,7 @@ defmodule FaktoryWorker.WorkerTest do
         |> Worker.new()
         |> Worker.send_end()
 
-      assert result.conn == nil
+      assert result.conn_pid == nil
       assert result.worker_state == :ended
     end
 
