@@ -75,6 +75,22 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
+  describe "disable_fetch/1" do
+    test "should cast the disable fetch message" do
+      Server.disable_fetch(self())
+      assert_receive {:"$gen_cast", :disable_fetch}, 50
+    end
+  end
+
+  describe "handle_cast/2" do
+    test "should handle the disable fetch message" do
+      state = %{disable_fetch: false}
+      {:noreply, new_state} = Server.handle_cast(:disable_fetch, state)
+
+      assert new_state.disable_fetch == true
+    end
+  end
+
   describe "handle_info/2" do
     test "should handle the connection process exiting and stop the worker" do
       worker_connection_mox()
