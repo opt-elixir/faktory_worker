@@ -19,6 +19,11 @@ defmodule FaktoryWorker.Worker.Server do
     }
   end
 
+  @spec disable_fetch(GenServer.server()) :: :ok
+  def disable_fetch(server) do
+    GenServer.cast(server, :disable_fetch)
+  end
+
   @impl true
   def init(opts) do
     Process.flag(:trap_exit, true)
@@ -29,6 +34,11 @@ defmodule FaktoryWorker.Worker.Server do
   def handle_continue({:setup_connection, opts}, _) do
     worker = Worker.new(opts)
     {:noreply, worker}
+  end
+
+  @impl true
+  def handle_cast(:disable_fetch, state) do
+    {:noreply, %{state | disable_fetch: true}}
   end
 
   @impl true
