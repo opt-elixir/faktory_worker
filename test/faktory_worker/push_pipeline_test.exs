@@ -6,9 +6,11 @@ defmodule FaktoryWorker.PushPipelineTest do
   describe "child_spec/1" do
     test "should return a default child_spec" do
       opts = [name: FaktoryWorker]
-      child_spec = PushPipeline.child_spec(opts)
 
-      assert child_spec == default_child_spec()
+      assert %{
+               id: FaktoryWorker.PushPipeline,
+               start: {FaktoryWorker.PushPipeline, :start_link, [[name: FaktoryWorker]]}
+             } = PushPipeline.child_spec(opts)
     end
 
     test "should allow a custom name to be specified" do
@@ -54,19 +56,10 @@ defmodule FaktoryWorker.PushPipelineTest do
     end
   end
 
-  defp default_child_spec() do
-    %{
-      id: FaktoryWorker.PushPipeline,
-      start: {FaktoryWorker.PushPipeline, :start_link, [[name: FaktoryWorker]]},
-      type: :supervisor
-    }
-  end
-
   defp get_child_spec_config(child_spec) do
     %{
       id: FaktoryWorker.PushPipeline,
-      start: {FaktoryWorker.PushPipeline, :start_link, [config]},
-      type: :supervisor
+      start: {FaktoryWorker.PushPipeline, :start_link, [config]}
     } = child_spec
 
     config
