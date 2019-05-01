@@ -22,36 +22,80 @@ defmodule FaktoryWorker.Job.JobTest do
     def perform(_), do: :ok
   end
 
+  defstruct [:value]
+
+  describe "encode_job/1" do
+    test "should encode a binary" do
+      {:ok, job} = Job.encode_job("hey there!")
+
+      assert job == ["hey there!"]
+    end
+
+    test "should encode a number" do
+      {:ok, job} = Job.encode_job(123)
+
+      assert job == [123]
+    end
+
+    test "should encode a map" do
+      {:ok, job} = Job.encode_job(%{hey: "there!"})
+
+      assert job == ["{\"hey\":\"there!\"}"]
+    end
+
+    test "should encode a struct" do
+      {:ok, job} = Job.encode_job(%__MODULE__{value: "hey there!"})
+
+      assert job == ["{\"value\":\"hey there!\"}"]
+    end
+
+    test "should encode a list" do
+      {:ok, job} = Job.encode_job(["first arg", %__MODULE__{value: "hey there!"}, 123])
+
+      assert job == ["first arg", "{\"value\":\"hey there!\"}", 123]
+    end
+
+    test "should return an error if the arguments could not be encoded" do
+      {:error, error} = Job.encode_job({:ok, 123})
+
+      assert error == "Unable to encode job argument '{:ok, 123}'"
+    end
+  end
+
   describe "build_payload/3" do
     test "should create new faktory job struct" do
-      data = %{hey: "there!"}
-      job = Job.build_payload(Test.Worker, [data], [])
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
 
-      assert job.jid != nil
-      assert job.jobtype == "Test.Worker"
-      assert job.args == [data]
-    end
-
-    test "should be able to pass in multiple job args" do
-      data = %{hey: "there!"}
-      job = Job.build_payload(Test.Worker, ["some_text", data, 123], [])
-
-      assert job.jid != nil
-      assert job.jobtype == "Test.Worker"
-      assert job.args == ["some_text", data, 123]
-    end
-
-    test "should be able to pass in a non list job arg" do
-      data = %{hey: "there!"}
       job = Job.build_payload(Test.Worker, data, [])
 
       assert job.jid != nil
       assert job.jobtype == "Test.Worker"
-      assert job.args == [data]
+      assert job.args == data
+    end
+
+    test "should be able to pass in multiple job args" do
+      {:ok, data} = Job.encode_job(["some_text", %{hey: "there!"}, 123])
+
+      job = Job.build_payload(Test.Worker, data, [])
+
+      assert job.jid != nil
+      assert job.jobtype == "Test.Worker"
+      assert job.args == ["some_text", "{\"hey\":\"there!\"}", 123]
+    end
+
+    test "should be able to pass in a non list job arg" do
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
+
+      job = Job.build_payload(Test.Worker, data, [])
+
+      assert job.jid != nil
+      assert job.jobtype == "Test.Worker"
+      assert job.args == data
     end
 
     test "should be able to specify a queue name" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
+
       opts = [queue: "test_queue"]
       job = Job.build_payload(Test.Worker, data, opts)
 
@@ -59,7 +103,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should not be able to specify an invalid data type for queue name" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [queue: 123]
       error = Job.build_payload(Test.Worker, data, opts)
 
@@ -67,7 +111,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should be able to specify a custom map of values" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [custom: %{unique_for: 120}]
       job = Job.build_payload(Test.Worker, data, opts)
 
@@ -75,7 +119,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should not be able to specify an invalid data type for custom data" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [custom: [1, 2, 3]]
       error = Job.build_payload(Test.Worker, data, opts)
 
@@ -83,7 +127,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should be able to specify the retry field" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [retry: 20]
       job = Job.build_payload(Test.Worker, data, opts)
 
@@ -91,7 +135,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should not be able to specify invalid data for the retry field" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [retry: "20"]
       error = Job.build_payload(Test.Worker, data, opts)
 
@@ -99,7 +143,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should be able to specify the reserve_for field" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [reserve_for: 120]
       job = Job.build_payload(Test.Worker, data, opts)
 
@@ -107,7 +151,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should not be able to specify invalid data for the reserve_for field" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [reserve_for: "120"]
       error = Job.build_payload(Test.Worker, data, opts)
 
@@ -115,7 +159,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should not be able to specify a value less than 60 for the reserve_for field" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [reserve_for: 59]
       error = Job.build_payload(Test.Worker, data, opts)
 
@@ -123,7 +167,7 @@ defmodule FaktoryWorker.Job.JobTest do
     end
 
     test "should set the job id to a long string" do
-      job = Job.build_payload(Test.Worker, 123, [])
+      job = Job.build_payload(Test.Worker, [123], [])
 
       assert byte_size(job.jid) == 24
     end
@@ -131,7 +175,7 @@ defmodule FaktoryWorker.Job.JobTest do
 
   describe "perform_async/2" do
     test "should not send a bad payload" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [queue: 123]
       {:error, _} = payload = Job.build_payload(Test.Worker, data, opts)
 
@@ -143,7 +187,7 @@ defmodule FaktoryWorker.Job.JobTest do
 
   describe "perform_async/3" do
     test "should not send a bad payload" do
-      data = %{hey: "there!"}
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
       opts = [queue: 123]
       {:error, _} = payload = Job.build_payload(Test.Worker, data, opts)
 

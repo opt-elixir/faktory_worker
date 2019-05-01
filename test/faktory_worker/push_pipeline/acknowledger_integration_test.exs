@@ -15,7 +15,7 @@ defmodule FaktoryWorker.PushPipeline.AcknowledgerIntegrationTest do
       faktory_name = :"Test_#{Random.string()}"
       pipeline_name = FaktoryWorker.PushPipeline.format_pipeline_name(faktory_name)
 
-      job = %{hey: "there!"}
+      {:ok, job} = Job.encode_job(%{hey: "there!"})
       opts = [faktory_name: faktory_name]
 
       payload1 = Job.build_payload(DefaultWorker, job, opts)

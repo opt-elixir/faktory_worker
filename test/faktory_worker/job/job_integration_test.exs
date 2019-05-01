@@ -16,7 +16,8 @@ defmodule FaktoryWorker.JobIntegrationTest do
 
       opts = [faktory_name: faktory_name]
 
-      job = Job.build_payload(DefaultWorker, %{hey: "there!"}, opts)
+      {:ok, data} = Job.encode_job(%{hey: "there!"})
+      job = Job.build_payload(DefaultWorker, data, opts)
 
       Job.perform_async(job, opts)
 

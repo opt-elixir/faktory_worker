@@ -28,12 +28,38 @@ defmodule FaktoryWorker.Job do
       def perform_async(job, opts \\ []) do
         opts = Keyword.merge(unquote(using_opts), opts)
 
-        __MODULE__
-        |> Job.build_payload(job, opts)
-        |> Job.perform_async(opts)
+        case Job.encode_job(job) do
+          {:ok, job} ->
+            __MODULE__
+            |> Job.build_payload(job, opts)
+            |> Job.perform_async(opts)
+
+          result ->
+            result
+        end
       end
     end
   end
+
+  @doc false
+  def encode_job(job) when is_list(job) do
+    job_args =
+      job
+      |> Enum.reverse()
+      |> Enum.reduce_while([], fn arg, acc ->
+        case encode_job_args(arg) do
+          {:ok, arg} -> {:cont, [arg | acc]}
+          _ -> {:halt, {:error, "Unable to encode job argument '#{inspect(arg)}'"}}
+        end
+      end)
+
+    case job_args do
+      {:error, _} = error -> error
+      job_args -> {:ok, job_args}
+    end
+  end
+
+  def encode_job(job), do: encode_job([job])
 
   @doc false
   def build_payload(worker_module, job, opts) when is_list(job) do
@@ -43,10 +69,6 @@ defmodule FaktoryWorker.Job do
       args: job
     }
     |> append_optional_fields(opts)
-  end
-
-  def build_payload(worker_module, job, opts) do
-    build_payload(worker_module, [job], opts)
   end
 
   @doc false
@@ -101,5 +123,18 @@ defmodule FaktoryWorker.Job do
     module
     |> to_string()
     |> String.trim_leading("Elixir.")
+  end
+
+  defp encode_job_args(payload) when is_number(payload), do: {:ok, payload}
+  defp encode_job_args(payload) when is_binary(payload), do: {:ok, payload}
+
+  defp encode_job_args(%_{} = payload) do
+    payload
+    |> Map.from_struct()
+    |> encode_job_args()
+  end
+
+  defp encode_job_args(payload) do
+    Jason.encode(payload)
   end
 end
