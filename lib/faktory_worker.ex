@@ -3,6 +3,8 @@ defmodule FaktoryWorker do
   TODO: docs
   """
 
+  require Logger
+
   @doc false
   def child_spec(opts \\ []) do
     opts = Keyword.put_new(opts, :name, __MODULE__)

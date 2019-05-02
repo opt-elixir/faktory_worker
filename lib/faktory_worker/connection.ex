@@ -1,5 +1,6 @@
 defmodule FaktoryWorker.Connection do
   @moduledoc false
+  require Logger
 
   alias FaktoryWorker.Socket.{Tcp, Ssl}
   alias FaktoryWorker.Protocol
@@ -16,10 +17,12 @@ defmodule FaktoryWorker.Connection do
 
   @spec open(opts :: keyword()) :: {:ok, __MODULE__.t()} | {:error, term()}
   def open(opts \\ []) do
+
     use_tls = Keyword.get(opts, :use_tls, false)
     socket_handler = Keyword.get(opts, :socket_handler, default_socket_handler(use_tls))
     host = Keyword.get(opts, :host, "localhost")
     port = Keyword.get(opts, :port, 7419)
+
 
     with {:ok, connection} <- socket_handler.connect(host, port, opts),
          {:ok, _} <- verify_handshake(connection, opts) do
@@ -36,6 +39,7 @@ defmodule FaktoryWorker.Connection do
   end
 
   def send_command(%{socket_handler: socket_handler} = connection, command) do
+
     with {:ok, payload} <- Protocol.encode_command(command),
          :ok <- socket_handler.send(connection, payload),
          {:ok, _} = response <- recv(connection) do
@@ -44,14 +48,24 @@ defmodule FaktoryWorker.Connection do
   end
 
   defp recv(%{socket_handler: socket_handler} = connection) do
-    connection
-    |> socket_handler.recv()
+
+    result =
+      connection
+      |> socket_handler.recv()
+
+
+    result
     |> decode_response(connection)
   end
 
   defp recv(%{socket_handler: socket_handler} = connection, length) do
-    connection
-    |> socket_handler.recv(length)
+
+    result =
+      connection
+      |> socket_handler.recv(length)
+
+
+    result
     |> decode_response(connection)
   end
 

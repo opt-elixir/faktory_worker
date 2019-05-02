@@ -1,6 +1,6 @@
 defmodule FaktoryWorker.Socket.Ssl do
   @moduledoc false
-
+  require Logger
   alias FaktoryWorker.Connection
 
   @behaviour FaktoryWorker.Socket

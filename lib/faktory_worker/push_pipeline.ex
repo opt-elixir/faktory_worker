@@ -1,6 +1,6 @@
 defmodule FaktoryWorker.PushPipeline do
   @moduledoc false
-
+  require Logger
   use Broadway
 
   alias FaktoryWorker.PushPipeline.Consumer
