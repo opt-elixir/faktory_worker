@@ -40,7 +40,7 @@ defmodule FaktoryWorker.Job do
     %{
       jid: Random.job_id(),
       jobtype: job_type_for_module(worker_module),
-      args: job
+      args: normalize_job_args(job)
     }
     |> append_optional_fields(opts)
   end
@@ -101,5 +101,15 @@ defmodule FaktoryWorker.Job do
     module
     |> to_string()
     |> String.trim_leading("Elixir.")
+  end
+
+  defp normalize_job_args(job) do
+    Enum.map(job, fn
+      %_{} = arg ->
+        Map.from_struct(arg)
+
+      arg ->
+        arg
+    end)
   end
 end

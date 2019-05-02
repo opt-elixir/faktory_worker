@@ -22,6 +22,8 @@ defmodule FaktoryWorker.Job.JobTest do
     def perform(_), do: :ok
   end
 
+  defstruct [:value]
+
   describe "build_payload/3" do
     test "should create new faktory job struct" do
       data = %{hey: "there!"}
@@ -48,6 +50,15 @@ defmodule FaktoryWorker.Job.JobTest do
       assert job.jid != nil
       assert job.jobtype == "Test.Worker"
       assert job.args == [data]
+    end
+
+    test "should be able to pass in a struct as a job arg" do
+      data = %__MODULE__{value: "hey there!"}
+      job = Job.build_payload(Test.Worker, data, [])
+
+      assert job.jid != nil
+      assert job.jobtype == "Test.Worker"
+      assert job.args == [%{value: "hey there!"}]
     end
 
     test "should be able to specify a queue name" do
