@@ -30,9 +30,14 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
   @impl true
   def terminate(_reason, state) do
     Logger.info("[faktory-worker] terminate #{inspect(state)}")
-    state
-    |> FaktoryWorker.Worker.Pool.format_worker_pool_name()
-    |> Supervisor.which_children()
+    children =
+      state
+      |> FaktoryWorker.Worker.Pool.format_worker_pool_name()
+      |> Supervisor.which_children()
+
+    Logger.info("[faktory-worker] terminate children #{inspect(children)}")
+
+    children
     |> Enum.each(&shutdown_worker/1)
   end
 
