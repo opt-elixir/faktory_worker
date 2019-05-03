@@ -22,6 +22,7 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
 
   @impl true
   def init(opts) do
+    Logger.info("[faktory-worker] init shutdown manager")
     Process.flag(:trap_exit, true)
     {:ok, opts}
   end
