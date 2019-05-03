@@ -97,7 +97,7 @@ defmodule FaktoryWorker.Worker do
       |> Keyword.get(:queue, [])
       |> format_queue_for_command()
 
-    Logger.info("[faktory-worker] send_fetch: #{inspect(state)}")
+    # Logger.info("[faktory-worker] send_fetch: #{inspect(state)}")
 
     state.conn_pid
     |> send_command({:fetch, queues})
