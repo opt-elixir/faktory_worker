@@ -165,6 +165,10 @@ defmodule FaktoryWorker.Worker do
     %{state | worker_state: :ended, conn_pid: nil}
   end
 
+  defp handle_end_response({:error, _msg}, state) do
+    %{state | worker_state: :ended, conn_pid: nil}
+  end
+
   defp clear_beat_ref(state), do: %{state | beat_ref: nil}
 
   defp schedule_beat(%{worker_state: worker_state} = state)
