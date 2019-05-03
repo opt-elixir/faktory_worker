@@ -31,7 +31,6 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
   def terminate(_reason, state) do
     Logger.info("[faktory-worker] terminate #{inspect(state)}")
 
-    raise "HERE"
     children =
       state
       |> FaktoryWorker.Worker.Pool.format_worker_pool_name()

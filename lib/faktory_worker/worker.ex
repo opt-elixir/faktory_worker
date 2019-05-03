@@ -80,7 +80,7 @@ defmodule FaktoryWorker.Worker do
   @spec send_beat(state :: __MODULE__.t()) :: __MODULE__.t()
   def send_beat(%{worker_state: worker_state} = state)
       when worker_state in @valid_beat_states do
-    Logger.info("[faktory-worker] send_beat: #{inspect(state)}")
+    # Logger.info("[faktory-worker] send_beat: #{inspect(state)}")
     state.conn_pid
     |> send_command({:beat, state.worker_id})
     |> handle_beat_response(state)
