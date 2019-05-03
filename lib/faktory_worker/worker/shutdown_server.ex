@@ -43,7 +43,7 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
   end
 
   defp shutdown_worker({_, worker_pid, _, _}) do
-    Logger.info("[faktory-worker] shutdown_worker #{worker_pid}")
+    Logger.info("[faktory-worker] shutdown_worker #{inspect(worker_pid)}")
 
     Server.disable_fetch(worker_pid)
   end
