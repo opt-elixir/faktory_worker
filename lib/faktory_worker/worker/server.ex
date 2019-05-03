@@ -2,6 +2,7 @@ defmodule FaktoryWorker.Worker.Server do
   @moduledoc false
 
   use GenServer
+  require Logger
 
   alias FaktoryWorker.Worker
 
@@ -38,6 +39,7 @@ defmodule FaktoryWorker.Worker.Server do
 
   @impl true
   def handle_cast(:disable_fetch, state) do
+    Logger.info("[faktory-worker] handle_cast_disable_fetch #{inspect(state)}")
     {:noreply, %{state | disable_fetch: true}}
   end
 

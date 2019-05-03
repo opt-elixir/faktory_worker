@@ -2,6 +2,7 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
   @moduledoc false
 
   use GenServer
+  require Logger
 
   alias FaktoryWorker.Worker.Server
 
@@ -27,6 +28,7 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
 
   @impl true
   def terminate(_reason, state) do
+    Logger.info("[faktory-worker] terminate #{inspect(state)}")
     state
     |> FaktoryWorker.Worker.Pool.format_worker_pool_name()
     |> Supervisor.which_children()
@@ -34,6 +36,8 @@ defmodule FaktoryWorker.Worker.ShutdownManager do
   end
 
   defp shutdown_worker({_, worker_pid, _, _}) do
+    Logger.info("[faktory-worker] shutdown_worker #{worker_pid}")
+
     Server.disable_fetch(worker_pid)
   end
 
