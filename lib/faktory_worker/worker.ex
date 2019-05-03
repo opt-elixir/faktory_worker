@@ -65,6 +65,7 @@ defmodule FaktoryWorker.Worker do
   def send_end(%{conn_pid: conn_pid} = state) when is_pid(conn_pid) do
     # only attempt to send the end command if there is a chance
     # the connection is still available
+    Logger.info("[faktory-worker] send_end: #{inspect(state)}")
     if Process.alive?(conn_pid) do
       conn_pid
       |> send_command(:end)
@@ -79,6 +80,7 @@ defmodule FaktoryWorker.Worker do
   @spec send_beat(state :: __MODULE__.t()) :: __MODULE__.t()
   def send_beat(%{worker_state: worker_state} = state)
       when worker_state in @valid_beat_states do
+    Logger.info("[faktory-worker] send_beat: #{inspect(state)}")
     state.conn_pid
     |> send_command({:beat, state.worker_id})
     |> handle_beat_response(state)
@@ -94,6 +96,8 @@ defmodule FaktoryWorker.Worker do
       state.worker_config
       |> Keyword.get(:queue, [])
       |> format_queue_for_command()
+
+    Logger.info("[faktory-worker] send_fetch: #{inspect(state)}")
 
     state.conn_pid
     |> send_command({:fetch, queues})
