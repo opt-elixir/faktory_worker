@@ -42,11 +42,6 @@ defmodule FaktoryWorker.Worker.Server do
   end
 
   @impl true
-  def handle_info(:beat, state) do
-    state = Worker.send_beat(state)
-    {:noreply, state}
-  end
-
   def handle_info(:fetch, state) do
     state = Worker.send_fetch(state)
     {:noreply, state}

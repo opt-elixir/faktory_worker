@@ -5,7 +5,7 @@ defmodule FaktoryWorker.Random do
     random_hex(12)
   end
 
-  def worker_id() do
+  def process_wid() do
     random_hex(8)
   end
 

@@ -80,7 +80,7 @@ defmodule FaktoryWorker.WorkerLoggerTest do
 
   describe "log_beat/2" do
     test "should log a successful beat when previous beat failed" do
-      worker_id = Random.worker_id()
+      worker_id = Random.process_wid()
 
       log_message =
         capture_log(fn ->
@@ -91,7 +91,7 @@ defmodule FaktoryWorker.WorkerLoggerTest do
     end
 
     test "should log a failed beat when previous beat succeeded" do
-      worker_id = Random.worker_id()
+      worker_id = Random.process_wid()
 
       log_message =
         capture_log(fn ->
@@ -102,7 +102,7 @@ defmodule FaktoryWorker.WorkerLoggerTest do
     end
 
     test "should not log when the beat state did not change" do
-      worker_id = Random.worker_id()
+      worker_id = Random.process_wid()
 
       log_message =
         capture_log(fn ->
@@ -115,7 +115,7 @@ defmodule FaktoryWorker.WorkerLoggerTest do
 
   describe "log_fetch/3" do
     test "should log a failed fetch" do
-      worker_id = Random.worker_id()
+      worker_id = Random.process_wid()
 
       log_message =
         capture_log(fn ->

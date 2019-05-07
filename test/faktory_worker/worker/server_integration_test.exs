@@ -13,7 +13,7 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
     test "should start the worker server and connect to faktory" do
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         disable_fetch: true
       ]

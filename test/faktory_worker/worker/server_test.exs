@@ -40,7 +40,12 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "start_link/1" do
     test "should start the worker server" do
-      opts = [name: :test_worker_1, worker_id: Random.worker_id(), worker_module: TestQueueWorker]
+      opts = [
+        name: :test_worker_1,
+        worker_id: Random.process_wid(),
+        worker_module: TestQueueWorker
+      ]
+
       pid = start_supervised!(Server.child_spec(opts))
 
       assert pid == Process.whereis(:test_worker_1)
@@ -54,7 +59,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
@@ -96,7 +101,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
       worker_connection_mox()
 
       opts = [
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -117,7 +122,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -136,7 +141,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
@@ -181,7 +186,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         beat_interval: 1,
         disable_fetch: true,
@@ -216,7 +221,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
@@ -261,7 +266,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TestQueueWorker,
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
@@ -330,7 +335,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
+        worker_id: Random.process_wid(),
         worker_module: TimeoutQueueWorker,
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
