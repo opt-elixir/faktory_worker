@@ -73,7 +73,6 @@ defmodule FaktoryWorker.Worker do
     state.conn_pid
     |> send_command({:fetch, state.queues})
     |> handle_fetch_response(state)
-    |> schedule_fetch()
   end
 
   def send_fetch(state), do: state
@@ -117,7 +116,7 @@ defmodule FaktoryWorker.Worker do
     %{state | worker_state: :ended, conn_pid: nil}
   end
 
-  defp handle_fetch_response({:ok, :no_content}, state), do: state
+  defp handle_fetch_response({:ok, :no_content}, state), do: schedule_fetch(state)
 
   defp handle_fetch_response({:ok, job}, state) do
     job_supervisor = job_supervisor_name(state)
@@ -145,7 +144,7 @@ defmodule FaktoryWorker.Worker do
     timeout_duration = (reserve_for_seconds - 20) * 1000
     timeout_ref = Process.send_after(self(), :job_timeout, timeout_duration)
 
-    %{
+    state = %{
       state
       | worker_state: :running_job,
         job_timeout_ref: timeout_ref,
@@ -153,18 +152,20 @@ defmodule FaktoryWorker.Worker do
         job_id: job["jid"],
         job: job
     }
+
+    schedule_fetch(state)
   end
 
   defp handle_fetch_response({:error, reason}, state) do
     WorkerLogger.log_fetch(:error, state.process_wid, reason)
-    Process.sleep(state.retry_interval)
+    Process.send_after(self(), :fetch, state.retry_interval)
     state
   end
 
   defp schedule_fetch(%{disable_fetch: true} = state), do: state
 
   defp schedule_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
-    :ok = Process.send(self(), :fetch, [])
+    Process.send_after(self(), :fetch, 50)
     state
   end
 

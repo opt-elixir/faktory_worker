@@ -68,7 +68,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       Worker.new(opts)
 
-      assert_received :fetch
+      assert_receive :fetch
     end
   end
 
@@ -361,7 +361,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       consume_initial_fetch_message()
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should not send a fetch command and schedule next fetch when state is ':quiet'" do
@@ -468,7 +468,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ok
     end
 
-    test "should log error, sleep, and schedule next fetch worker cannot connect" do
+    test "should log error and schedule next fetch when worker cannot connect" do
       expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
         {:error, :econnrefused}
       end)
@@ -495,7 +495,7 @@ defmodule FaktoryWorker.WorkerTest do
                  worker.process_wid
                }"
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should log error, sleep, and then successfully fetch next time" do
@@ -527,7 +527,7 @@ defmodule FaktoryWorker.WorkerTest do
                  worker.process_wid
                }"
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should set state to ':running_job' when there is a job to process" do
@@ -892,7 +892,7 @@ defmodule FaktoryWorker.WorkerTest do
       |> new_running_worker(job)
       |> Worker.ack_job(:ok)
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should send a 'FAIL' to faktory for an unsuccessful job" do
@@ -1022,7 +1022,7 @@ defmodule FaktoryWorker.WorkerTest do
       |> new_running_worker(job)
       |> Worker.ack_job({:error, error})
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should log when there was an error sending the ack" do
@@ -1070,7 +1070,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert log_message =~
                "Error sending 'ACK' acknowledgement to faktory"
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should log when there was an error sending the fail" do
@@ -1125,7 +1125,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert log_message =~
                "Error sending 'FAIL' acknowledgement to faktory"
 
-      assert_received :fetch
+      assert_receive :fetch
     end
 
     test "should cancel the job timeout when acknowledging a successful job" do

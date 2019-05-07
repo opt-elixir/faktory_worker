@@ -23,8 +23,7 @@ defmodule FaktoryWorker.Worker.PoolTest do
     test "should start the supervisor" do
       opts = [
         name: FaktoryWorker,
-        process_wid: Random.process_wid(),
-        worker_pool: [disable_fetch: true]
+        process_wid: Random.process_wid()
       ]
 
       {:ok, pid} = start_supervised({Pool, opts})
@@ -39,7 +38,7 @@ defmodule FaktoryWorker.Worker.PoolTest do
 
       opts = [
         name: FaktoryWorker,
-        worker_pool: [size: 1, queues: ["test_queue"], disable_fetch: true],
+        worker_pool: [size: 1, queues: ["test_queue"]],
         process_wid: process_wid
       ]
 
@@ -59,7 +58,7 @@ defmodule FaktoryWorker.Worker.PoolTest do
     test "should start 10 connections by default" do
       opts = [
         name: FaktoryWorker,
-        worker_pool: [queues: ["test_queue"], disable_fetch: true],
+        worker_pool: [queues: ["test_queue"]],
         process_wid: Random.process_wid()
       ]
 
