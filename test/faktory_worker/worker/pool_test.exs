@@ -21,8 +21,11 @@ defmodule FaktoryWorker.Worker.PoolTest do
 
   describe "start_link/1" do
     test "should start the supervisor" do
-      IO.puts("test1")
-      opts = [name: FaktoryWorker, process_wid: Random.process_wid()]
+      opts = [
+        name: FaktoryWorker,
+        process_wid: Random.process_wid(),
+        worker_pool: [disable_fetch: true]
+      ]
 
       {:ok, pid} = start_supervised({Pool, opts})
 
@@ -32,12 +35,11 @@ defmodule FaktoryWorker.Worker.PoolTest do
     end
 
     test "should start the list of specified workers" do
-      IO.puts("test2")
       process_wid = Random.process_wid()
 
       opts = [
         name: FaktoryWorker,
-        worker_pool: [size: 1, queues: ["test_queue"]],
+        worker_pool: [size: 1, queues: ["test_queue"], disable_fetch: true],
         process_wid: process_wid
       ]
 
@@ -55,19 +57,15 @@ defmodule FaktoryWorker.Worker.PoolTest do
     end
 
     test "should start 10 connections by default" do
-      IO.puts("test3")
-
       opts = [
         name: FaktoryWorker,
-        worker_pool: [queues: ["test_queue"]],
+        worker_pool: [queues: ["test_queue"], disable_fetch: true],
         process_wid: Random.process_wid()
       ]
 
       {:ok, pid} = start_supervised({Pool, opts})
 
-      children = Supervisor.which_children(pid)
-
-      assert length(children) == 10
+      assert Supervisor.count_children(pid).workers == 10
 
       :ok = stop_supervised(Pool)
     end
