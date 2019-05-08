@@ -24,7 +24,9 @@ defmodule FaktoryWorker.PushPipeline.AcknowledgerIntegrationTest do
       payload2 = Job.build_payload(DefaultWorker, job, opts)
       message2 = %{data: {pipeline_name, payload2}}
 
-      start_supervised!({FaktoryWorker, name: faktory_name, pool: [size: 2]})
+      start_supervised!(
+        {FaktoryWorker, name: faktory_name, pool: [size: 2], worker_pool: [disable_fetch: true]}
+      )
 
       :ok = Acknowledger.ack(:test_ref, [], [message1, message2])
 

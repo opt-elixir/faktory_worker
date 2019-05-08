@@ -32,7 +32,7 @@ defmodule FaktoryWorker.Worker do
     process_wid = Keyword.fetch!(opts, :process_wid)
     queues = Keyword.fetch!(opts, :queues)
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
-    disable_fetch = Keyword.get(opts, :disable_fetch, false)
+    disable_fetch = Keyword.get(opts, :disable_fetch)
 
     {:ok, conn_pid} =
       opts
