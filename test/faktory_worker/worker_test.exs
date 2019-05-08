@@ -63,58 +63,6 @@ defmodule FaktoryWorker.WorkerTest do
     end
   end
 
-  describe "send_end/1" do
-    @tag skip: true
-    test "should send the 'END' command to faktory" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->
-        :ok
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      result =
-        opts
-        |> Worker.new()
-        |> Worker.send_end()
-
-      assert result.conn_pid == nil
-      assert result.worker_state == :ended
-    end
-
-    @tag skip: true
-    test "should not send 'END' command when no connection has been setup" do
-      assert Worker.send_end(%{}) == %{}
-    end
-
-    @tag skip: true
-    test "should not send 'END' if the connection is no longer available" do
-      worker_connection_mox()
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      worker = Worker.new(opts)
-
-      Process.unlink(worker.conn_pid)
-      Process.exit(worker.conn_pid, :shutdown)
-
-      result = Worker.send_end(worker)
-
-      assert result.conn_pid == nil
-      assert result.worker_state == :ended
-    end
-  end
-
-  # todo: more tests for multi queue fetching
   describe "send_fetch/1" do
     test "should send a fetch command and schedule next fetch when state is ':ok'" do
       worker_connection_mox()
@@ -406,6 +354,32 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {FaktoryWorker.TestQueueWorker, :perform, %{"hey" => "there!"}}, 50
 
       :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+
+    test "should send a fetch command with multiple queues" do
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue default\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$-1\r\n"}
+      end)
+
+      opts = [
+        process_wid: Random.process_wid(),
+        queues: ["test_queue", "default"],
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      opts
+      |> Worker.new()
+      |> Worker.send_fetch()
+
+      consume_initial_fetch_message()
+
+      assert_receive :fetch
     end
   end
 

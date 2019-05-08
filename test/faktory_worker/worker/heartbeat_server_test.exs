@@ -293,7 +293,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       HeartbeatServer.terminate(:shutdown, state)
     end
 
-    test "should send the end command and cancel timer" do
+    test "should cancel the beat timer" do
       worker_connection_mox()
 
       expect(FaktoryWorker.SocketMock, :send, fn _, "END\r\n" ->

@@ -113,26 +113,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
-  describe "termiante/2" do
-    @tag skip: true
-    test "should send the 'END' command when the server terminates" do
-      worker_connection_mox()
-      connection_close_mox()
-
-      opts = [
-        name: :test_worker_1,
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      _ = start_supervised!(Server.child_spec(opts))
-
-      # shuts down the process, see connection_close_mox for test expectations
-      :ok = stop_supervised(:test_worker_1)
-    end
-  end
-
   describe "job timeout" do
     test "should ignore a job timeout when the job completed before the timeout message is handled" do
       worker_connection_mox()

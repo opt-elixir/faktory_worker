@@ -72,21 +72,27 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   @impl true
-  def terminate(_reason, %{conn: conn, beat_ref: beat_ref} = state) when is_reference(beat_ref) do
+  def terminate(:shutdown, %{conn: conn, beat_ref: beat_ref} = state)
+      when is_reference(beat_ref) do
     Process.cancel_timer(beat_ref)
     disable_connections(state.name)
     send_end(conn)
   end
 
-  def terminate(_reason, %{conn: conn} = state) do
+  def terminate(:shutdown, %{conn: conn} = state) do
     disable_connections(state.name)
     send_end(conn)
   end
 
+  def terminate(_, _), do: :ok
+
   defp handle_beat_response({{:ok, %{"state" => new_beat_state}}, conn}, state) do
-    # todo: need to propigate the state change to all connections
     WorkerLogger.log_beat(:ok, state.beat_state, state.process_wid)
     new_beat_state = String.to_existing_atom(new_beat_state)
+
+    if new_beat_state == :quiet do
+      disable_connections(state.name)
+    end
 
     %{state | beat_state: new_beat_state, conn: conn, beat_ref: nil}
   end

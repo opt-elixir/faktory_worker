@@ -50,5 +50,19 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
 
       :ok = stop_supervised(FaktoryWorker)
     end
+
+    test "should pick up a job from when using multiple queues" do
+      start_supervised!(
+        FaktoryWorker.child_spec(
+          pool: [size: 1],
+          worker_pool: [size: 1, queues: ["default", "test_queue"]]
+        )
+      )
+
+      job = %{"job" => "one", "_send_to_" => inspect(self())}
+      TestQueueWorker.perform_async(job)
+
+      assert_receive {TestQueueWorker, :perform, %{"job" => "one"}}
+    end
   end
 end
