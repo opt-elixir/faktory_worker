@@ -53,21 +53,6 @@ defmodule FaktoryWorker.Worker do
     |> schedule_fetch()
   end
 
-  @spec send_end(state :: __MODULE__.t()) :: __MODULE__.t()
-  def send_end(%{conn_pid: conn_pid} = state) when is_pid(conn_pid) do
-    # only attempt to send the end command if there is a chance
-    # the connection is still available
-    if Process.alive?(conn_pid) do
-      conn_pid
-      |> send_command(:end)
-      |> handle_end_response(state)
-    else
-      handle_end_response({:ok, :closed}, state)
-    end
-  end
-
-  def send_end(state), do: state
-
   @spec send_fetch(state :: __MODULE__.t()) :: state :: __MODULE__.t()
   def send_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
     state.conn_pid
@@ -110,10 +95,6 @@ defmodule FaktoryWorker.Worker do
     state.conn_pid
     |> send_command({:fail, payload})
     |> handle_ack_response(:error, state)
-  end
-
-  defp handle_end_response({:ok, :closed}, state) do
-    %{state | worker_state: :ended, conn_pid: nil}
   end
 
   defp handle_fetch_response({:ok, :no_content}, state), do: schedule_fetch(state)

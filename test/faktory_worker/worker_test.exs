@@ -64,6 +64,7 @@ defmodule FaktoryWorker.WorkerTest do
   end
 
   describe "send_end/1" do
+    @tag skip: true
     test "should send the 'END' command to faktory" do
       worker_connection_mox()
 
@@ -86,10 +87,12 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.worker_state == :ended
     end
 
+    @tag skip: true
     test "should not send 'END' command when no connection has been setup" do
       assert Worker.send_end(%{}) == %{}
     end
 
+    @tag skip: true
     test "should not send 'END' if the connection is no longer available" do
       worker_connection_mox()
 

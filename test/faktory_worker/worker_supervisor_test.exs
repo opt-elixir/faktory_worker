@@ -21,10 +21,7 @@ defmodule FaktoryWorker.WorkerSupervisorTest do
 
       children = Supervisor.which_children(pid)
 
-      [shutdown_manager, heartbeat_server, pool] = children
-
-      assert {FaktoryWorker_shutdown_manager, _, :worker, [FaktoryWorker.Worker.ShutdownManager]} =
-               shutdown_manager
+      [heartbeat_server, pool] = children
 
       assert {FaktoryWorker_heartbeat_server, _, :worker, [FaktoryWorker.Worker.HeartbeatServer]} =
                heartbeat_server

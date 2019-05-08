@@ -46,6 +46,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       {:ok, state, continue} = HeartbeatServer.init(opts)
 
       assert state == %{
+               name: FaktoryWorker,
                process_wid: process_wid,
                beat_interval: 15_000,
                beat_state: :ok,
@@ -107,6 +108,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :ok,
         beat_ref: :erlang.make_ref(),
@@ -137,6 +139,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :quiet,
         beat_ref: :erlang.make_ref(),
@@ -158,6 +161,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :terminate,
         beat_ref: :erlang.make_ref(),
@@ -188,6 +192,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :ok,
         beat_ref: :erlang.make_ref(),
@@ -216,6 +221,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :quiet,
         beat_ref: :erlang.make_ref(),
@@ -248,6 +254,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{
+        name: FaktoryWorker,
         process_wid: process_wid,
         beat_state: :ok,
         beat_ref: :erlang.make_ref(),
@@ -278,6 +285,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       ]
 
       state = %{
+        name: FaktoryWorker,
         beat_ref: nil,
         conn: ConnectionManager.new(opts)
       }
@@ -301,6 +309,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       beat_ref = Process.send_after(self(), :beat, 1000)
 
       state = %{
+        name: FaktoryWorker,
         beat_ref: beat_ref,
         conn: ConnectionManager.new(opts)
       }
@@ -312,6 +321,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
 
     test "should terminate when there is no active connection" do
       state = %{
+        name: FaktoryWorker,
         conn: nil
       }
 

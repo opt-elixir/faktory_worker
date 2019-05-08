@@ -5,6 +5,8 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
 
   alias FaktoryWorker.WorkerLogger
   alias FaktoryWorker.ConnectionManager
+  alias FaktoryWorker.Worker.Server
+  alias FaktoryWorker.Worker.Pool
 
   @spec start_link(opts :: keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -25,6 +27,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
     Process.flag(:trap_exit, true)
 
     state = %{
+      name: Keyword.get(opts, :name),
       process_wid: Keyword.get(opts, :process_wid),
       beat_interval: Keyword.get(opts, :beat_interval, 15_000),
       beat_state: :ok,
@@ -69,19 +72,15 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   @impl true
-  def terminate(_reason, %{conn: conn, beat_ref: beat_ref}) when is_reference(beat_ref) do
+  def terminate(_reason, %{conn: conn, beat_ref: beat_ref} = state) when is_reference(beat_ref) do
     Process.cancel_timer(beat_ref)
+    disable_connections(state.name)
     send_end(conn)
   end
 
-  def terminate(_reason, %{conn: conn}) do
+  def terminate(_reason, %{conn: conn} = state) do
+    disable_connections(state.name)
     send_end(conn)
-  end
-
-  defp send_end(nil), do: :ok
-
-  defp send_end(conn) do
-    ConnectionManager.send_command(conn, :end)
   end
 
   defp handle_beat_response({{:ok, %{"state" => new_beat_state}}, conn}, state) do
@@ -96,6 +95,26 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
     WorkerLogger.log_beat(result, state.beat_state, state.process_wid)
 
     %{state | beat_state: result, conn: conn, beat_ref: nil}
+  end
+
+  defp disable_connections(name) do
+    pool_name = Pool.format_worker_pool_name(name: name)
+
+    if is_pid(Process.whereis(pool_name)) do
+      pool_name
+      |> Supervisor.which_children()
+      |> Enum.each(&disable_connection/1)
+    end
+  end
+
+  defp disable_connection({_, worker_pid, _, _}) do
+    Server.disable_fetch(worker_pid)
+  end
+
+  defp send_end(nil), do: :ok
+
+  defp send_end(conn) do
+    ConnectionManager.send_command(conn, :end)
   end
 
   defp name_from_opts(opts) do

@@ -72,12 +72,6 @@ defmodule FaktoryWorker.Worker.Server do
     {:stop, :normal, %{state | conn_pid: nil}}
   end
 
-  @impl true
-  def terminate(_reason, state) do
-    # todo: no longer do this
-    Worker.send_end(state)
-  end
-
   defp name_from_opts(opts) do
     Keyword.get(opts, :name, __MODULE__)
   end
