@@ -74,6 +74,7 @@ defmodule FaktoryWorker.Worker.Server do
 
   @impl true
   def terminate(_reason, state) do
+    # todo: no longer do this
     Worker.send_end(state)
   end
 

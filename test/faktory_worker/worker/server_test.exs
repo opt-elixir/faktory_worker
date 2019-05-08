@@ -161,48 +161,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
   end
 
   describe "worker lifecycle" do
-    @tag skip: true
-    test "should issue regular 'BEAT' commands" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        # return the terminate state here to prevent futher beat commands
-        {:ok, "+{\"state\": \"terminate\"}\r\n"}
-      end)
-
-      connection_close_mox()
-
-      opts = [
-        name: :test_worker_1,
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        beat_interval: 1,
-        disable_fetch: true,
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      pid = start_supervised!(Server.child_spec(opts))
-
-      %{worker_state: :ok} = :sys.get_state(pid)
-
-      # sleep 5 milliseconds to allow both beats to occur
-      Process.sleep(5)
-
-      :ok = stop_supervised(:test_worker_1)
-    end
-
     test "should send 'ACK' command when a job completes successfully" do
       job_id = "f47ccc395ef9d9646118434f"
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"

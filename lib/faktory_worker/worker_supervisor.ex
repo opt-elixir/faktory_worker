@@ -17,6 +17,7 @@ defmodule FaktoryWorker.WorkerSupervisor do
 
     children = [
       {FaktoryWorker.Worker.Pool, opts},
+      {FaktoryWorker.Worker.HeartbeatServer, opts},
       {FaktoryWorker.Worker.ShutdownManager, opts}
     ]
 

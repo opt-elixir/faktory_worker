@@ -114,13 +114,13 @@ defmodule FaktoryWorker.Connection do
   end
 
   defp put_worker_args(args, opts) do
-    worker_id = Keyword.get(opts, :process_wid)
+    process_wid = Keyword.get(opts, :process_wid)
     sys_pid = System.get_pid()
     {:ok, hostname} = :inet.gethostname()
 
     worker_args = %{
       hostname: to_string(hostname),
-      wid: worker_id,
+      wid: process_wid,
       pid: String.to_integer(sys_pid),
       labels: ["elixir-#{System.version()}"]
     }

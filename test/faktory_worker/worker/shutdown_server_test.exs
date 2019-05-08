@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Worker.ShutdownServerTest do
 
   alias FaktoryWorker.Worker.ShutdownManager
 
-  describe "start_link2" do
+  describe "start_link/2" do
     test "should start the supervisor" do
       opts = [name: FaktoryWorker]
 

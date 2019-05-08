@@ -4,7 +4,7 @@ defmodule FaktoryWorker.Protocol do
   @type protocol_command ::
           {:hello, args :: map()}
           | {:push, args :: map()}
-          | {:beat, worker_id :: String.t()}
+          | {:beat, process_wid :: String.t()}
           | {:fetch, queues :: [String.t()]}
           | {:ack, job_id :: String.t()}
           | {:fail, args :: map()}
@@ -28,8 +28,8 @@ defmodule FaktoryWorker.Protocol do
     encode("PUSH", args)
   end
 
-  def encode_command({:beat, worker_id}) do
-    encode("BEAT", %{wid: worker_id})
+  def encode_command({:beat, process_wid}) do
+    encode("BEAT", %{wid: process_wid})
   end
 
   def encode_command({:fetch, []}) do

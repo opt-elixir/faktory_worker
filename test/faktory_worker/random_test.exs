@@ -26,7 +26,7 @@ defmodule FaktoryWorker.RandomTest do
     end
   end
 
-  describe "worker_id/0" do
+  describe "process_wid/0" do
     test "should return a random hex" do
       hex1 = Random.process_wid()
       hex2 = Random.process_wid()
