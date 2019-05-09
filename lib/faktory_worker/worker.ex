@@ -35,6 +35,8 @@ defmodule FaktoryWorker.Worker do
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch)
 
+    Process.sleep(:rand.uniform(1000))
+
     {:ok, conn_pid} =
       opts
       |> Keyword.get(:connection, [])
@@ -198,6 +200,6 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp send_command(conn_pid, command) do
-    ConnectionManager.Server.send_command(conn_pid, command, :infinity)
+    ConnectionManager.Server.send_command(conn_pid, command)
   end
 end

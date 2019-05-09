@@ -12,8 +12,8 @@ defmodule FaktoryWorker.ConnectionManager.Server do
 
   @spec send_command(connection_manager :: atom() | pid(), command :: Protocol.protocol_command()) ::
           FaktoryWorker.Connection.response()
-  def send_command(connection_manager, command, timeout \\ 5000) do
-    GenServer.call(connection_manager, {:send_command, command}, timeout)
+  def send_command(connection_manager, command) do
+    GenServer.call(connection_manager, {:send_command, command})
   end
 
   @impl true
