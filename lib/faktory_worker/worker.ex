@@ -11,6 +11,7 @@ defmodule FaktoryWorker.Worker do
 
   @five_seconds 5_000
   @faktory_default_reserve_for 1800
+  @default_delay 5_000
 
   defstruct [
     :conn_pid,
@@ -35,7 +36,10 @@ defmodule FaktoryWorker.Worker do
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch)
 
-    Process.sleep(:rand.uniform(5000))
+    # Delay connection startup to stagger worker connections. Without this
+    # all workers try to connect at the same time and it can't handle the load
+    delay_max = Application.get_env(:faktory_worker, :worker_startup_delay) || @default_delay
+    Process.sleep(:random.uniform(delay_max))
 
     {:ok, conn_pid} =
       opts
