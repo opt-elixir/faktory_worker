@@ -57,9 +57,16 @@ defmodule FaktoryWorker.Worker.Server do
     {:noreply, state}
   end
 
-  def handle_info({job_ref, _}, state) when is_reference(job_ref) do
+  def handle_info({job_ref, _}, %{job_ref: %{ref: job_ref}} = state) when is_reference(job_ref) do
     Process.demonitor(job_ref, [:flush])
     state = Worker.ack_job(state, :ok)
+    {:noreply, state}
+  end
+
+  def handle_info({fetch_ref, result}, %{fetch_ref: %{ref: fetch_ref}} = state)
+      when is_reference(fetch_ref) do
+    Process.demonitor(fetch_ref, [:flush])
+    state = Worker.handle_fetch_response(result, state)
     {:noreply, state}
   end
 

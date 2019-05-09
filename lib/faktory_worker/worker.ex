@@ -15,6 +15,7 @@ defmodule FaktoryWorker.Worker do
   defstruct [
     :conn_pid,
     :disable_fetch,
+    :fetch_ref,
     :process_wid,
     :worker_state,
     :queues,
@@ -55,9 +56,17 @@ defmodule FaktoryWorker.Worker do
 
   @spec send_fetch(state :: __MODULE__.t()) :: state :: __MODULE__.t()
   def send_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
-    state.conn_pid
-    |> send_command({:fetch, state.queues})
-    |> handle_fetch_response(state)
+    job_supervisor = job_supervisor_name(state)
+
+    fetch_ref =
+      Task.Supervisor.async_nolink(
+        job_supervisor,
+        fn ->
+          send_command(state.conn_pid, {:fetch, state.queues})
+        end
+      )
+
+    %{state | fetch_ref: fetch_ref}
   end
 
   def send_fetch(state), do: state
@@ -97,9 +106,7 @@ defmodule FaktoryWorker.Worker do
     |> handle_ack_response(:error, state)
   end
 
-  defp handle_fetch_response({:ok, :no_content}, state), do: schedule_fetch(state)
-
-  defp handle_fetch_response({:ok, job}, state) do
+  def handle_fetch_response({:ok, job}, state) when is_map(job) do
     job_supervisor = job_supervisor_name(state)
 
     job_module =
@@ -125,7 +132,7 @@ defmodule FaktoryWorker.Worker do
     timeout_duration = (reserve_for_seconds - 20) * 1000
     timeout_ref = Process.send_after(self(), :job_timeout, timeout_duration)
 
-    state = %{
+    %{
       state
       | worker_state: :running_job,
         job_timeout_ref: timeout_ref,
@@ -133,11 +140,11 @@ defmodule FaktoryWorker.Worker do
         job_id: job["jid"],
         job: job
     }
-
-    schedule_fetch(state)
   end
 
-  defp handle_fetch_response({:error, reason}, state) do
+  def handle_fetch_response({:ok, _}, state), do: schedule_fetch(state)
+
+  def handle_fetch_response({:error, reason}, state) do
     WorkerLogger.log_fetch(:error, state.process_wid, reason)
     Process.send_after(self(), :fetch, state.retry_interval)
     state
@@ -191,6 +198,6 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp send_command(conn_pid, command) do
-    ConnectionManager.Server.send_command(conn_pid, command)
+    ConnectionManager.Server.send_command(conn_pid, command, :infinity)
   end
 end
