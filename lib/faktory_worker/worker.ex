@@ -35,7 +35,7 @@ defmodule FaktoryWorker.Worker do
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch)
 
-    Process.sleep(:rand.uniform(1000))
+    Process.sleep(:rand.uniform(5000))
 
     {:ok, conn_pid} =
       opts
