@@ -3,6 +3,9 @@ use Mix.Config
 if Mix.env() == :test do
   config :logger, backends: []
 
+  # Set the worker startup delay to 1ms to ensure tests are speedy
+  config :faktory_worker, worker_startup_delay: 1
+
   if System.get_env("CI") do
     config :faktory_worker, :tls_server,
       host: "faktory_tls",

@@ -12,6 +12,7 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
   describe "start_link/1" do
     test "should start the worker server and connect to faktory" do
       opts = [
+        startup_delay_max: 1,
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         queues: ["test_queue"],
@@ -36,7 +37,11 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
   describe "worker lifecyle" do
     test "should send multiple 'FETCH' commands" do
       start_supervised!(
-        FaktoryWorker.child_spec(pool: [size: 1], worker_pool: [size: 1, queues: ["test_queue"]])
+        FaktoryWorker.child_spec(
+          worker_startup_delay_max: 1,
+          pool: [size: 1],
+          worker_pool: [size: 1, queues: ["test_queue"]]
+        )
       )
 
       job1 = %{"job" => "one", "_send_to_" => inspect(self())}
@@ -54,6 +59,7 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
     test "should pick up a job from when using multiple queues" do
       start_supervised!(
         FaktoryWorker.child_spec(
+          worker_startup_delay_max: 1,
           pool: [size: 1],
           worker_pool: [size: 1, queues: ["default", "test_queue"]]
         )
