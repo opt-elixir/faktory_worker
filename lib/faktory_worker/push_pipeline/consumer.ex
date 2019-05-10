@@ -26,7 +26,7 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
   end
 
   defp send_command_result({:ok, _}, job) do
-    WorkerLogger.log_push(job.jid, job.args)
+    WorkerLogger.log_push(job.jid, job.args, job.jobtype)
     :ok
   end
 

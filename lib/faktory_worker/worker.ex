@@ -164,7 +164,7 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:ok, _}, ack_type, state) do
-    WorkerLogger.log_ack(ack_type, state.job_id, state.job["args"])
+    WorkerLogger.log_ack(ack_type, state.job_id, state.job["args"], state.job["jobtype"])
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
@@ -178,7 +178,7 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:error, _}, ack_type, state) do
-    WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job["args"])
+    WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job["args"], state.job["jobtype"])
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{

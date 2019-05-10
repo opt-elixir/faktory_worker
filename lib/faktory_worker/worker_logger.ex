@@ -3,12 +3,14 @@ defmodule FaktoryWorker.WorkerLogger do
 
   require Logger
 
-  @spec log_push(jid :: String.t(), args :: any()) :: :ok | {:error, any()}
-  def log_push(jid, args), do: log_info("Enqueued", jid, args)
+  @spec log_push(jid :: String.t(), args :: any(), worker_module :: String.t()) ::
+          :ok | {:error, any()}
+  def log_push(jid, args, worker_module), do: log_info("Enqueued", jid, args, worker_module)
 
-  @spec log_ack(:ok | :error, jid :: String.t(), args :: any()) :: :ok | {:error, any()}
-  def log_ack(:ok, jid, args), do: log_info("Succeeded", jid, args)
-  def log_ack(:error, jid, args), do: log_info("Failed", jid, args)
+  @spec log_ack(:ok | :error, jid :: String.t(), args :: any(), worker_module :: String.t()) ::
+          :ok | {:error, any()}
+  def log_ack(:ok, jid, args, worker_module), do: log_info("Succeeded", jid, args, worker_module)
+  def log_ack(:error, jid, args, worker_module), do: log_info("Failed", jid, args, worker_module)
 
   @spec log_beat(:ok | :error, :ok | :error, wid :: String.t()) :: :ok | {:error, any()}
   # no state change, state == state
@@ -21,13 +23,18 @@ defmodule FaktoryWorker.WorkerLogger do
     log_info("Failed to fetch job due to '#{error}'", wid)
   end
 
-  @spec log_failed_ack(:ok | :error, jid :: String.t(), args :: any()) :: :ok | {:error, any()}
-  def log_failed_ack(:ok, jid, args) do
-    log_info("Error sending 'ACK' acknowledgement to faktory", jid, args)
+  @spec log_failed_ack(
+          :ok | :error,
+          jid :: String.t(),
+          args :: any(),
+          worker_module :: String.t()
+        ) :: :ok | {:error, any()}
+  def log_failed_ack(:ok, jid, args, worker_module) do
+    log_info("Error sending 'ACK' acknowledgement to faktory", jid, args, worker_module)
   end
 
-  def log_failed_ack(:error, jid, args) do
-    log_info("Error sending 'FAIL' acknowledgement to faktory", jid, args)
+  def log_failed_ack(:error, jid, args, worker_module) do
+    log_info("Error sending 'FAIL' acknowledgement to faktory", jid, args, worker_module)
   end
 
   defp log_info(message) do
@@ -38,7 +45,7 @@ defmodule FaktoryWorker.WorkerLogger do
     log_info("#{outcome} wid-#{wid}")
   end
 
-  defp log_info(outcome, jid, args) do
-    log_info("#{outcome} jid-#{jid} #{inspect(args)}")
+  defp log_info(outcome, jid, args, worker_module) do
+    log_info("#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
   end
 end

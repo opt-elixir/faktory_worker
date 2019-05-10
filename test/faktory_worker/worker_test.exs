@@ -497,7 +497,15 @@ defmodule FaktoryWorker.WorkerTest do
 
     test "should send a successful 'ACK' to faktory" do
       job_id = Random.string()
-      job = %{"jid" => job_id}
+
+      job = %{
+        "args" => [%{"hey" => "there!"}],
+        "created_at" => "2019-04-09T12:14:07.6550641Z",
+        "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+        "jid" => job_id,
+        "jobtype" => "FaktoryWorker.TestQueueWorker",
+        "queue" => "test_queue"
+      }
 
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
 
@@ -530,7 +538,15 @@ defmodule FaktoryWorker.WorkerTest do
 
     test "should log that a successful 'ACK' was sent to faktory" do
       job_id = Random.string()
-      job = %{"jid" => job_id}
+
+      job = %{
+        "args" => [%{"hey" => "there!"}],
+        "created_at" => "2019-04-09T12:14:07.6550641Z",
+        "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+        "jid" => job_id,
+        "jobtype" => "FaktoryWorker.TestQueueWorker",
+        "queue" => "test_queue"
+      }
 
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
 
@@ -557,7 +573,7 @@ defmodule FaktoryWorker.WorkerTest do
           |> Worker.ack_job(:ok)
         end)
 
-      assert log_message =~ "Succeeded jid-#{job_id}"
+      assert log_message =~ "Succeeded (FaktoryWorker.TestQueueWorker) jid-#{job_id}"
     end
 
     test "should schedule the next fetch for a successful ack" do
@@ -637,7 +653,15 @@ defmodule FaktoryWorker.WorkerTest do
 
     test "should log that a 'FAIL' was sent to faktory" do
       job_id = Random.string()
-      job = %{"jid" => job_id}
+
+      job = %{
+        "args" => [%{"hey" => "there!"}],
+        "created_at" => "2019-04-09T12:14:07.6550641Z",
+        "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+        "jid" => job_id,
+        "jobtype" => "FaktoryWorker.TestQueueWorker",
+        "queue" => "test_queue"
+      }
 
       {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
 
@@ -676,7 +700,7 @@ defmodule FaktoryWorker.WorkerTest do
           |> Worker.ack_job({:error, error})
         end)
 
-      assert log_message =~ "Failed jid-#{job_id}"
+      assert log_message =~ "Failed (FaktoryWorker.TestQueueWorker) jid-#{job_id}"
     end
 
     test "should schedule the next fetch for an unsuccessful ack" do

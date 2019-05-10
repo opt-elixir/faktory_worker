@@ -10,13 +10,15 @@ defmodule FaktoryWorker.WorkerLoggerTest do
     test "should log a push success" do
       job_id = Random.job_id()
       args = %{hey: "there!"}
+      worker_module = "TestQueueWorker"
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_push(job_id, args)
+          WorkerLogger.log_push(job_id, args, worker_module)
         end)
 
-      assert log_message =~ "[faktory-worker] Enqueued jid-#{job_id} #{inspect(args)}"
+      assert log_message =~
+               "[faktory-worker] Enqueued (#{worker_module}) jid-#{job_id} #{inspect(args)}"
     end
   end
 
@@ -24,25 +26,29 @@ defmodule FaktoryWorker.WorkerLoggerTest do
     test "should log a successful job ack" do
       job_id = Random.job_id()
       args = %{hey: "there!"}
+      worker_module = "TestQueueWorker"
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_ack(:ok, job_id, args)
+          WorkerLogger.log_ack(:ok, job_id, args, worker_module)
         end)
 
-      assert log_message =~ "[faktory-worker] Succeeded jid-#{job_id} #{inspect(args)}"
+      assert log_message =~
+               "[faktory-worker] Succeeded (#{worker_module}) jid-#{job_id} #{inspect(args)}"
     end
 
     test "should log a failed job ack" do
       job_id = Random.job_id()
       args = %{hey: "there!"}
+      worker_module = "TestQueueWorker"
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_ack(:error, job_id, args)
+          WorkerLogger.log_ack(:error, job_id, args, worker_module)
         end)
 
-      assert log_message =~ "[faktory-worker] Failed jid-#{job_id} #{inspect(args)}"
+      assert log_message =~
+               "[faktory-worker] Failed (#{worker_module}) jid-#{job_id} #{inspect(args)}"
     end
   end
 
@@ -50,31 +56,33 @@ defmodule FaktoryWorker.WorkerLoggerTest do
     test "should log failed to send 'ACK'" do
       job_id = Random.job_id()
       args = %{hey: "there!"}
+      worker_module = "TestQueueWorker"
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_failed_ack(:ok, job_id, args)
+          WorkerLogger.log_failed_ack(:ok, job_id, args, worker_module)
         end)
 
       assert log_message =~
-               "[faktory-worker] Error sending 'ACK' acknowledgement to faktory jid-#{job_id} #{
-                 inspect(args)
-               }"
+               "[faktory-worker] Error sending 'ACK' acknowledgement to faktory (#{worker_module}) jid-#{
+                 job_id
+               } #{inspect(args)}"
     end
 
     test "should log failed to send 'FAIL'" do
       job_id = Random.job_id()
       args = %{hey: "there!"}
+      worker_module = "TestQueueWorker"
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_failed_ack(:error, job_id, args)
+          WorkerLogger.log_failed_ack(:error, job_id, args, worker_module)
         end)
 
       assert log_message =~
-               "[faktory-worker] Error sending 'FAIL' acknowledgement to faktory jid-#{job_id} #{
-                 inspect(args)
-               }"
+               "[faktory-worker] Error sending 'FAIL' acknowledgement to faktory (#{worker_module}) jid-#{
+                 job_id
+               } #{inspect(args)}"
     end
   end
 
