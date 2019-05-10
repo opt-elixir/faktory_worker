@@ -65,6 +65,8 @@ defmodule FaktoryWorker.WorkerTest do
 
   describe "send_fetch/1" do
     test "should send a fetch command and schedule next fetch when state is ':ok'" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
       worker_connection_mox()
 
       expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
@@ -147,159 +149,7 @@ defmodule FaktoryWorker.WorkerTest do
       refute_received :fetch
     end
 
-    test "should send a fetch command without a queue configured" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH default\r\n" ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "$-1\r\n"}
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["default"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      opts
-      |> Worker.new()
-      |> Worker.send_fetch()
-    end
-
-    test "should leave the worker state set to ':ok' when there is no job to process" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "$-1\r\n"}
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      result =
-        opts
-        |> Worker.new()
-        |> Worker.send_fetch()
-
-      assert result.worker_state == :ok
-    end
-
-    test "should log error and schedule next fetch when worker cannot connect" do
-      expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
-        {:error, :econnrefused}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
-        {:error, :econnrefused}
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        retry_interval: 1,
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      worker = Worker.new(opts)
-
-      log_message = capture_log(fn -> Worker.send_fetch(worker) end)
-
-      consume_initial_fetch_message()
-
-      assert log_message =~
-               "[faktory-worker] Failed to fetch job due to 'Failed to connect to Faktory' wid-#{
-                 worker.process_wid
-               }"
-
-      assert_receive :fetch
-    end
-
-    test "should log error, sleep, and then successfully fetch next time" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "-SHUTDOWN Shutdown in progress\r\n"}
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        retry_interval: 1,
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      worker = Worker.new(opts)
-
-      log_message = capture_log(fn -> Worker.send_fetch(worker) end)
-
-      consume_initial_fetch_message()
-
-      assert log_message =~
-               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
-                 worker.process_wid
-               }"
-
-      assert_receive :fetch
-    end
-
-    test "should set state to ':running_job' when there is a job to process" do
-      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
-
-      job =
-        Jason.encode!(%{
-          "args" => [%{"hey" => "there!"}],
-          "created_at" => "2019-04-09T12:14:07.6550641Z",
-          "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
-          "jid" => "f47ccc395ef9d9646118434f",
-          "jobtype" => "FaktoryWorker.TestQueueWorker",
-          "queue" => "test_queue"
-        })
-
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue\r\n" ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "$#{byte_size(job)}\r\n"}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _, _ ->
-        {:ok, "#{job}\r\n"}
-      end)
-
-      opts = [
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"],
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      result =
-        opts
-        |> Worker.new()
-        |> Worker.send_fetch()
-
-      assert result.worker_state == :running_job
-
-      :ok = stop_supervised(FaktoryWorker_job_supervisor)
-    end
-
-    test "should run the returned job in a new process" do
+    test "should start the fetch command in a new process" do
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       job =
@@ -337,26 +187,14 @@ defmodule FaktoryWorker.WorkerTest do
         |> Worker.new()
         |> Worker.send_fetch()
 
-      assert %Task{} = result.job_ref
-      assert result.job_id == "f47ccc395ef9d9646118434f"
+      assert %Task{} = result.fetch_ref
 
-      assert result.job == %{
-               "args" => [%{"hey" => "there!", "_send_to_" => inspect(self())}],
-               "created_at" => "2019-04-09T12:14:07.6550641Z",
-               "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
-               "jid" => "f47ccc395ef9d9646118434f",
-               "jobtype" => "FaktoryWorker.TestQueueWorker",
-               "queue" => "test_queue"
-             }
-
-      assert is_reference(result.job_timeout_ref)
-
-      assert_receive {FaktoryWorker.TestQueueWorker, :perform, %{"hey" => "there!"}}, 50
-
-      :ok = stop_supervised(FaktoryWorker_job_supervisor)
+      assert_receive :fetch
     end
 
     test "should send a fetch command with multiple queues" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
       worker_connection_mox()
 
       expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue default\r\n" ->
@@ -540,6 +378,110 @@ defmodule FaktoryWorker.WorkerTest do
       assert Process.cancel_timer(timer_ref) == false
 
       :ok = stop_supervised(FaktoryWorker_job_supervisor)
+    end
+  end
+
+  describe "handle_fetch_response/2" do
+    test "should run the job in a process" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      job = %{
+        "args" => [%{"hey" => "there!"}],
+        "created_at" => "2019-04-09T12:14:07.6550641Z",
+        "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+        "jid" => "f47ccc395ef9d9646118434f",
+        "jobtype" => "FaktoryWorker.TestQueueWorker",
+        "queue" => "test_queue"
+      }
+
+      state = %{
+        faktory_name: FaktoryWorker,
+        worker_state: :ok,
+        job_timeout_ref: nil,
+        job_ref: nil,
+        job_id: nil,
+        job: nil
+      }
+
+      new_state = Worker.handle_fetch_response({:ok, job}, state)
+
+      assert new_state.worker_state == :running_job
+      assert Process.alive?(new_state.job_ref.pid)
+    end
+
+    test "should ignore an empty fetch response and schedule fetch" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      state = %{
+        faktory_name: FaktoryWorker,
+        worker_state: :ok,
+        job_timeout_ref: nil,
+        job_ref: nil,
+        job_id: nil,
+        job: nil
+      }
+
+      Worker.handle_fetch_response({:ok, :no_content}, state)
+
+      assert_receive :fetch
+    end
+
+    test "should log error, sleep, and then successfully fetch next time" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      worker_connection_mox()
+
+      opts = [
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
+        retry_interval: 1,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      state = Worker.new(opts)
+
+      consume_initial_fetch_message()
+
+      log_message =
+        capture_log(fn ->
+          Worker.handle_fetch_response({:error, "Shutdown in progress"}, state)
+        end)
+
+      assert log_message =~
+               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
+                 state.process_wid
+               }"
+
+      assert_receive :fetch
+    end
+
+    test "should log error and schedule next fetch when worker cannot connect" do
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
+        {:error, :econnrefused}
+      end)
+
+      opts = [
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
+        retry_interval: 1,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      state = Worker.new(opts)
+
+      log_message =
+        capture_log(fn ->
+          Worker.handle_fetch_response({:error, "Failed to connect to Faktory"}, state)
+        end)
+
+      assert log_message =~
+               "[faktory-worker] Failed to fetch job due to 'Failed to connect to Faktory' wid-#{
+                 state.process_wid
+               }"
+
+      assert_receive :fetch
     end
   end
 

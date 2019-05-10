@@ -39,7 +39,7 @@ defmodule FaktoryWorker.Worker do
     # Delay connection startup to stagger worker connections. Without this
     # all workers try to connect at the same time and it can't handle the load
     delay_max = Application.get_env(:faktory_worker, :worker_startup_delay) || @default_delay
-    Process.sleep(:random.uniform(delay_max))
+    Process.sleep(Enum.random(1..delay_max))
 
     {:ok, conn_pid} =
       opts
@@ -162,8 +162,6 @@ defmodule FaktoryWorker.Worker do
     Process.send_after(self(), :fetch, 50)
     state
   end
-
-  defp schedule_fetch(state), do: state
 
   defp handle_ack_response({:ok, _}, ack_type, state) do
     WorkerLogger.log_ack(ack_type, state.job_id, state.job["args"])

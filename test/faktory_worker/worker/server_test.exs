@@ -142,6 +142,8 @@ defmodule FaktoryWorker.Worker.ServerTest do
   describe "worker lifecycle" do
     test "should send 'ACK' command when a job completes successfully" do
       job_id = "f47ccc395ef9d9646118434f"
+      job_ref = :erlang.make_ref()
+
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
 
       worker_connection_mox()
@@ -165,10 +167,12 @@ defmodule FaktoryWorker.Worker.ServerTest do
       pid = start_supervised!(Server.child_spec(opts))
 
       :sys.replace_state(pid, fn state ->
-        Map.put(state, :job_id, job_id)
+        state
+        |> Map.put(:job_id, job_id)
+        |> Map.put(:job_ref, %{ref: job_ref})
       end)
 
-      Process.send(pid, {:erlang.make_ref(), :ok}, [])
+      Process.send(pid, {job_ref, :ok}, [])
 
       :ok = stop_supervised(:test_worker_1)
     end
