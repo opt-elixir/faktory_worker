@@ -13,18 +13,13 @@ defmodule FaktoryWorker.Job do
   @optional_job_fields [:queue, :custom, :retry, :reserve_for]
 
   @default_worker_config [
-    retry: 25,
-    reserve_for: 1800
+    retry: 25
   ]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
 
-    using_opts = Keyword.merge(@default_worker_config, using_opts)
-
     quote do
-      def worker_config(), do: unquote(using_opts)
-
       def perform_async(job, opts \\ []) do
         opts = Keyword.merge(unquote(using_opts), opts)
 
@@ -37,6 +32,8 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def build_payload(worker_module, job, opts) when is_list(job) do
+    opts = Keyword.merge(@default_worker_config, opts)
+
     %{
       jid: Random.job_id(),
       jobtype: job_type_for_module(worker_module),

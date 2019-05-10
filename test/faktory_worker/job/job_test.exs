@@ -101,6 +101,14 @@ defmodule FaktoryWorker.Job.JobTest do
       assert job.retry == 20
     end
 
+    test "should set the default retry value" do
+      data = %{hey: "there!"}
+
+      job = Job.build_payload(Test.Worker, data, [])
+
+      assert job.retry == 25
+    end
+
     test "should not be able to specify invalid data for the retry field" do
       data = %{hey: "there!"}
       opts = [retry: "20"]
@@ -161,39 +169,6 @@ defmodule FaktoryWorker.Job.JobTest do
       {:error, error} = Job.perform_async(TestPipeline, payload, [])
 
       assert error == "The field 'queue' has an invalid value '123'"
-    end
-  end
-
-  describe "worker_config/0" do
-    test "should default the retry field value" do
-      config = TestWorker.worker_config()
-
-      assert Keyword.get(config, :retry) == 25
-    end
-
-    test "should default the reserve_for field value" do
-      config = TestWorker.worker_config()
-
-      assert Keyword.get(config, :reserve_for) == 1800
-    end
-  end
-
-  describe "__using__/1" do
-    test "should make the worker config available via worker_config/0" do
-      config = TestWorker.worker_config()
-
-      assert Keyword.get(config, :queue) == "test_queue"
-      assert Keyword.get(config, :concurrency) == 10
-    end
-
-    test "should be able to specify worker config fields" do
-      config = OverridesWorker.worker_config()
-
-      assert Keyword.get(config, :queue) == "override_queue"
-      assert Keyword.get(config, :concurrency) == 5
-      assert Keyword.get(config, :retry) == 10
-      assert Keyword.get(config, :reserve_for) == 600
-      assert Keyword.get(config, :custom) == %{"unique_for" => 60}
     end
   end
 end
