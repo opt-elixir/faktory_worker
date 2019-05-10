@@ -13,8 +13,8 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
     test "should start the worker server and connect to faktory" do
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         disable_fetch: true
       ]
 
@@ -35,7 +35,9 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
 
   describe "worker lifecyle" do
     test "should send multiple 'FETCH' commands" do
-      start_supervised!(FaktoryWorker.child_spec(pool: [size: 1], workers: [TestQueueWorker]))
+      start_supervised!(
+        FaktoryWorker.child_spec(pool: [size: 1], worker_pool: [size: 1, queues: ["test_queue"]])
+      )
 
       job1 = %{"job" => "one", "_send_to_" => inspect(self())}
       job2 = %{"job" => "two", "_send_to_" => inspect(self())}
@@ -43,10 +45,24 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
       TestQueueWorker.perform_async(job1)
       TestQueueWorker.perform_async(job2)
 
-      assert_receive {TestQueueWorker, :perform, %{"job" => "one"}}, 50
-      assert_receive {TestQueueWorker, :perform, %{"job" => "two"}}, 50
+      assert_receive {TestQueueWorker, :perform, %{"job" => "one"}}
+      assert_receive {TestQueueWorker, :perform, %{"job" => "two"}}
 
       :ok = stop_supervised(FaktoryWorker)
+    end
+
+    test "should pick up a job from when using multiple queues" do
+      start_supervised!(
+        FaktoryWorker.child_spec(
+          pool: [size: 1],
+          worker_pool: [size: 1, queues: ["default", "test_queue"]]
+        )
+      )
+
+      job = %{"job" => "one", "_send_to_" => inspect(self())}
+      TestQueueWorker.perform_async(job)
+
+      assert_receive {TestQueueWorker, :perform, %{"job" => "one"}}
     end
   end
 end

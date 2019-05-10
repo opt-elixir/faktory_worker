@@ -26,22 +26,22 @@ defmodule FaktoryWorker.RandomTest do
     end
   end
 
-  describe "worker_id/0" do
+  describe "process_wid/0" do
     test "should return a random hex" do
-      hex1 = Random.worker_id()
-      hex2 = Random.worker_id()
+      hex1 = Random.process_wid()
+      hex2 = Random.process_wid()
 
       assert hex1 != hex2
     end
 
     test "should return a lower case hex" do
-      hex = Random.worker_id()
+      hex = Random.process_wid()
 
       assert hex == String.downcase(hex)
     end
 
     test "should return a random hex based on 12 random bytes" do
-      hex = Random.worker_id()
+      hex = Random.process_wid()
       decoded = Base.decode16!(hex, case: :lower)
 
       assert byte_size(hex) == 16

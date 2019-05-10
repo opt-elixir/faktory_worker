@@ -23,10 +23,10 @@ defmodule FaktoryWorker.ProtocolTest do
     end
 
     test "should encode the 'BEAT' command" do
-      worker_id = Random.worker_id()
-      {:ok, command} = Protocol.encode_command({:beat, worker_id})
+      process_wid = Random.process_wid()
+      {:ok, command} = Protocol.encode_command({:beat, process_wid})
 
-      assert command == "BEAT {\"wid\":\"#{worker_id}\"}\r\n"
+      assert command == "BEAT {\"wid\":\"#{process_wid}\"}\r\n"
     end
 
     test "should encode the 'INFO' command" do

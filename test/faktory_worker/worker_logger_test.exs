@@ -80,33 +80,33 @@ defmodule FaktoryWorker.WorkerLoggerTest do
 
   describe "log_beat/2" do
     test "should log a successful beat when previous beat failed" do
-      worker_id = Random.worker_id()
+      process_wid = Random.process_wid()
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_beat(:ok, :error, worker_id)
+          WorkerLogger.log_beat(:ok, :error, process_wid)
         end)
 
-      assert log_message =~ "[faktory-worker] Heartbeat Succeeded wid-#{worker_id}"
+      assert log_message =~ "[faktory-worker] Heartbeat Succeeded wid-#{process_wid}"
     end
 
     test "should log a failed beat when previous beat succeeded" do
-      worker_id = Random.worker_id()
+      process_wid = Random.process_wid()
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_beat(:error, :ok, worker_id)
+          WorkerLogger.log_beat(:error, :ok, process_wid)
         end)
 
-      assert log_message =~ "[faktory-worker] Heartbeat Failed wid-#{worker_id}"
+      assert log_message =~ "[faktory-worker] Heartbeat Failed wid-#{process_wid}"
     end
 
     test "should not log when the beat state did not change" do
-      worker_id = Random.worker_id()
+      process_wid = Random.process_wid()
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_beat(:ok, :ok, worker_id)
+          WorkerLogger.log_beat(:ok, :ok, process_wid)
         end)
 
       assert log_message == ""
@@ -115,16 +115,16 @@ defmodule FaktoryWorker.WorkerLoggerTest do
 
   describe "log_fetch/3" do
     test "should log a failed fetch" do
-      worker_id = Random.worker_id()
+      process_wid = Random.process_wid()
 
       log_message =
         capture_log(fn ->
-          WorkerLogger.log_fetch(:error, worker_id, "Shutdown in progress")
+          WorkerLogger.log_fetch(:error, process_wid, "Shutdown in progress")
         end)
 
       assert log_message =~
                "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
-                 worker_id
+                 process_wid
                }"
     end
   end

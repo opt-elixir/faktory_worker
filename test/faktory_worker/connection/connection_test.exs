@@ -5,6 +5,7 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
   import FaktoryWorker.ConnectionHelpers
 
   alias FaktoryWorker.Connection
+  alias FaktoryWorker.Random
 
   setup :verify_on_exit!
 
@@ -67,7 +68,11 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
     test "should register the connection as a worker" do
       worker_connection_mox()
 
-      opts = [is_worker: true, socket_handler: FaktoryWorker.SocketMock]
+      opts = [
+        is_worker: true,
+        process_wid: Random.process_wid(),
+        socket_handler: FaktoryWorker.SocketMock
+      ]
 
       assert {:ok, %Connection{}} = Connection.open(opts)
     end

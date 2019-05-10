@@ -42,11 +42,6 @@ defmodule FaktoryWorker.Worker.Server do
   end
 
   @impl true
-  def handle_info(:beat, state) do
-    state = Worker.send_beat(state)
-    {:noreply, state}
-  end
-
   def handle_info(:fetch, state) do
     state = Worker.send_fetch(state)
     {:noreply, state}
@@ -62,9 +57,16 @@ defmodule FaktoryWorker.Worker.Server do
     {:noreply, state}
   end
 
-  def handle_info({job_ref, _}, state) when is_reference(job_ref) do
+  def handle_info({job_ref, _}, %{job_ref: %{ref: job_ref}} = state) when is_reference(job_ref) do
     Process.demonitor(job_ref, [:flush])
     state = Worker.ack_job(state, :ok)
+    {:noreply, state}
+  end
+
+  def handle_info({fetch_ref, result}, %{fetch_ref: %{ref: fetch_ref}} = state)
+      when is_reference(fetch_ref) do
+    Process.demonitor(fetch_ref, [:flush])
+    state = Worker.handle_fetch_response(result, state)
     {:noreply, state}
   end
 
@@ -75,11 +77,6 @@ defmodule FaktoryWorker.Worker.Server do
 
   def handle_info({:EXIT, conn_pid, _reason}, %{conn_pid: conn_pid} = state) do
     {:stop, :normal, %{state | conn_pid: nil}}
-  end
-
-  @impl true
-  def terminate(_reason, state) do
-    Worker.send_end(state)
   end
 
   defp name_from_opts(opts) do

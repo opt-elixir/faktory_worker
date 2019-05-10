@@ -12,7 +12,10 @@ defmodule FaktoryWorker.JobIntegrationTest do
   describe "perform_async/3" do
     test "should send a new job to faktory" do
       faktory_name = :"Test_#{Random.string()}"
-      start_supervised!({FaktoryWorker, name: faktory_name, pool: [size: 1]})
+
+      start_supervised!(
+        {FaktoryWorker, name: faktory_name, pool: [size: 1], worker_pool: [disable_fetch: true]}
+      )
 
       opts = [faktory_name: faktory_name]
 

@@ -7,7 +7,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
-  alias FaktoryWorker.{TestQueueWorker, TimeoutQueueWorker}
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -40,7 +39,12 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "start_link/1" do
     test "should start the worker server" do
-      opts = [name: :test_worker_1, worker_id: Random.worker_id(), worker_module: TestQueueWorker]
+      opts = [
+        name: :test_worker_1,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"]
+      ]
+
       pid = start_supervised!(Server.child_spec(opts))
 
       assert pid == Process.whereis(:test_worker_1)
@@ -50,12 +54,11 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
     test "should open a connection to faktory" do
       worker_connection_mox()
-      connection_close_mox()
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -96,8 +99,8 @@ defmodule FaktoryWorker.Worker.ServerTest do
       worker_connection_mox()
 
       opts = [
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -110,34 +113,14 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
-  describe "termiante/2" do
-    test "should send the 'END' command when the server terminates" do
-      worker_connection_mox()
-      connection_close_mox()
-
-      opts = [
-        name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      _ = start_supervised!(Server.child_spec(opts))
-
-      # shuts down the process, see connection_close_mox for test expectations
-      :ok = stop_supervised(:test_worker_1)
-    end
-  end
-
   describe "job timeout" do
     test "should ignore a job timeout when the job completed before the timeout message is handled" do
       worker_connection_mox()
-      connection_close_mox()
 
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -157,49 +140,10 @@ defmodule FaktoryWorker.Worker.ServerTest do
   end
 
   describe "worker lifecycle" do
-    test "should issue regular 'BEAT' commands" do
-      worker_connection_mox()
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        # return the terminate state here to prevent futher beat commands
-        {:ok, "+{\"state\": \"terminate\"}\r\n"}
-      end)
-
-      connection_close_mox()
-
-      opts = [
-        name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
-        beat_interval: 1,
-        disable_fetch: true,
-        connection: [socket_handler: FaktoryWorker.SocketMock]
-      ]
-
-      pid = start_supervised!(Server.child_spec(opts))
-
-      %{worker_state: :ok} = :sys.get_state(pid)
-
-      # sleep 5 milliseconds to allow both beats to occur
-      Process.sleep(5)
-
-      :ok = stop_supervised(:test_worker_1)
-    end
-
     test "should send 'ACK' command when a job completes successfully" do
       job_id = "f47ccc395ef9d9646118434f"
+      job_ref = :erlang.make_ref()
+
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
 
       worker_connection_mox()
@@ -212,12 +156,10 @@ defmodule FaktoryWorker.Worker.ServerTest do
         {:ok, "+OK\r\n"}
       end)
 
-      connection_close_mox()
-
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -225,10 +167,12 @@ defmodule FaktoryWorker.Worker.ServerTest do
       pid = start_supervised!(Server.child_spec(opts))
 
       :sys.replace_state(pid, fn state ->
-        Map.put(state, :job_id, job_id)
+        state
+        |> Map.put(:job_id, job_id)
+        |> Map.put(:job_ref, %{ref: job_ref})
       end)
 
-      Process.send(pid, {:erlang.make_ref(), :ok}, [])
+      Process.send(pid, {job_ref, :ok}, [])
 
       :ok = stop_supervised(:test_worker_1)
     end
@@ -257,12 +201,10 @@ defmodule FaktoryWorker.Worker.ServerTest do
         {:ok, "+OK\r\n"}
       end)
 
-      connection_close_mox()
-
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TestQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -270,7 +212,9 @@ defmodule FaktoryWorker.Worker.ServerTest do
       pid = start_supervised!(Server.child_spec(opts))
 
       :sys.replace_state(pid, fn state ->
-        Map.put(state, :job_id, job_id)
+        state
+        |> Map.put(:job_id, job_id)
+        |> Map.put(:job, %{"jid" => job_id})
       end)
 
       reason = {%RuntimeError{message: "It went bang!"}, stacktrace}
@@ -289,7 +233,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
           "created_at" => "2019-04-09T12:14:07.6550641Z",
           "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
           "jid" => "f47ccc395ef9d9646118434f",
-          "jobtype" => "FaktoryWorker.TestQueueWorker",
+          "jobtype" => "FaktoryWorker.TimeoutQueueWorker",
           "reserve_for" => 20,
           "queue" => "timeout_queue"
         })
@@ -326,12 +270,10 @@ defmodule FaktoryWorker.Worker.ServerTest do
         {:ok, "+OK\r\n"}
       end)
 
-      connection_close_mox()
-
       opts = [
         name: :test_worker_1,
-        worker_id: Random.worker_id(),
-        worker_module: TimeoutQueueWorker,
+        process_wid: Random.process_wid(),
+        queues: ["timeout_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -340,7 +282,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       Process.send(pid, :fetch, [])
 
-      Process.sleep(1000)
+      Process.sleep(100)
 
       :ok = stop_supervised(:test_worker_1)
       :ok = stop_supervised(FaktoryWorker_job_supervisor)
