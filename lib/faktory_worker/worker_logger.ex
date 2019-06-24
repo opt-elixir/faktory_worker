@@ -7,6 +7,12 @@ defmodule FaktoryWorker.WorkerLogger do
           :ok | {:error, any()}
   def log_push(jid, args, worker_module), do: log_info("Enqueued", jid, args, worker_module)
 
+  @spec log_not_unique_job(jid :: String.t(), args :: any(), worker_module :: String.t()) ::
+          :ok | {:error, any()}
+  def log_not_unique_job(jid, args, worker_module) do
+    log_info("NOTUNIQUE", jid, args, worker_module)
+  end
+
   @spec log_ack(:ok | :error, jid :: String.t(), args :: any(), worker_module :: String.t()) ::
           :ok | {:error, any()}
   def log_ack(:ok, jid, args, worker_module), do: log_info("Succeeded", jid, args, worker_module)

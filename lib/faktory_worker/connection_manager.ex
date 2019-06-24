@@ -40,11 +40,8 @@ defmodule FaktoryWorker.ConnectionManager do
           do: send_command(%{state | conn: nil}, command, false),
           else: {error, state}
 
-      # Handle errors from Faktory that should not be tried again, such as
-      # unique jobs.
+      # Handle errors from Faktory that should not be tried again
       {{:error, "Halt: " <> reason = error}, state} ->
-        # when we add support for the -NOTUNIQUE response this logging
-        # should be moved into the WorkerLogger module
         log_error(error, command)
 
         {{:ok, reason}, state}

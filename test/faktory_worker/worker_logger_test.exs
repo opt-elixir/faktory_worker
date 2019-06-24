@@ -136,4 +136,20 @@ defmodule FaktoryWorker.WorkerLoggerTest do
                }"
     end
   end
+
+  describe "log_not_unique_job/2" do
+    test "should log a not unique job message" do
+      job_id = Random.job_id()
+      args = %{hey: "there!", custom: %{unique_for: 60}}
+      worker_module = "TestQueueWorker"
+
+      log_message =
+        capture_log(fn ->
+          WorkerLogger.log_not_unique_job(job_id, args, worker_module)
+        end)
+
+      assert log_message =~
+               "[faktory-worker] NOTUNIQUE (#{worker_module}) jid-#{job_id} #{inspect(args)}"
+    end
+  end
 end
