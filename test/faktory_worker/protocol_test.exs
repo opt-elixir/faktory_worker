@@ -88,39 +88,39 @@ defmodule FaktoryWorker.ProtocolTest do
 
   describe "decode_response/1" do
     test "should decode the 'HI' response" do
-      {:ok, resposne} = Protocol.decode_response("+HI {\"v\":2}\r\n")
+      {:ok, response} = Protocol.decode_response("+HI {\"v\":2}\r\n")
 
-      assert resposne == %{"v" => 2}
+      assert response == %{"v" => 2}
     end
 
     test "should decode the 'OK' response" do
-      {:ok, resposne} = Protocol.decode_response("+OK\r\n")
+      {:ok, response} = Protocol.decode_response("+OK\r\n")
 
-      assert resposne == "OK"
+      assert response == "OK"
     end
 
     test "should decode the '-ERR' response" do
-      {:error, resposne} = Protocol.decode_response("-ERR Some error\r\n")
+      {:error, response} = Protocol.decode_response("-ERR Some error\r\n")
 
-      assert resposne == "Some error"
+      assert response == "Some error"
     end
 
     test "should decode the '-SHUTDOWN' response" do
-      {:error, resposne} = Protocol.decode_response("-SHUTDOWN Shutdown in progress\r\n")
+      {:error, response} = Protocol.decode_response("-SHUTDOWN Shutdown in progress\r\n")
 
-      assert resposne == "Shutdown in progress"
+      assert response == "Shutdown in progress"
     end
 
     test "should decode the '$n' bulk string response" do
-      {:ok, resposne} = Protocol.decode_response("$592\r\n")
+      {:ok, response} = Protocol.decode_response("$592\r\n")
 
-      assert resposne == {:bulk_string, 594}
+      assert response == {:bulk_string, 594}
     end
 
     test "should decode a null bulk string response" do
-      {:ok, resposne} = Protocol.decode_response("$-1\r\n")
+      {:ok, response} = Protocol.decode_response("$-1\r\n")
 
-      assert resposne == :no_content
+      assert response == :no_content
     end
 
     test "should decode bulk string response" do
@@ -133,9 +133,15 @@ defmodule FaktoryWorker.ProtocolTest do
     end
 
     test "should decode a json hash response" do
-      {:ok, resposne} = Protocol.decode_response("+{\"hey\":\"there!\"}\r\n")
+      {:ok, response} = Protocol.decode_response("+{\"hey\":\"there!\"}\r\n")
 
-      assert resposne == %{"hey" => "there!"}
+      assert response == %{"hey" => "there!"}
+    end
+
+    test "should decode a -NOTUNIQUE response" do
+      {:error, response} = Protocol.decode_response("-NOTUNIQUE Job not unique\r\n")
+
+      assert response == :not_unique
     end
   end
 end

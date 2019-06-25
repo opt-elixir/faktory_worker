@@ -80,7 +80,7 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       end)
 
       expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, "Halt: job not unique"}
+        {:error, "Halt: halt reason"}
       end)
 
       opts = [socket_handler: FaktoryWorker.SocketMock]
@@ -90,8 +90,8 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       assert capture_log(fn ->
                {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
 
-               assert result == "job not unique"
-             end) =~ "[warn]  [123456] Halt: job not unique"
+               assert result == "halt reason"
+             end) =~ "[warn]  [123456] Halt: halt reason"
     end
 
     test "should unset the connection when there is a socket failure" do
@@ -206,6 +206,35 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       {{:ok, :closed}, state} = ConnectionManager.send_command(state, :end)
 
       assert state.conn == nil
+    end
+
+    test "should return a not unique error" do
+      payload = %{
+        args: [1],
+        jid: "123456",
+        jobtype: "TestJob",
+        queue: "test_queue"
+      }
+
+      json = Jason.encode!(payload)
+      command = "PUSH #{json}\r\n"
+
+      connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "-NOTUNIQUE Job not unique\r\n"}
+      end)
+
+      opts = [socket_handler: FaktoryWorker.SocketMock]
+      state = ConnectionManager.new(opts)
+
+      {result, _} = ConnectionManager.send_command(state, {:push, payload})
+
+      assert result == {:error, :not_unique}
     end
   end
 end
