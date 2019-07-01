@@ -4,8 +4,8 @@ defmodule FaktoryWorker.QueueManager do
   use Agent
 
   defmodule Queue do
-    @enforce_keys [:name, :concurrency]
-    defstruct [:name, :concurrency]
+    @enforce_keys [:name, :max_concurrency]
+    defstruct [:name, :max_concurrency]
   end
 
   def start_link(opts) do
@@ -41,32 +41,33 @@ defmodule FaktoryWorker.QueueManager do
   end
 
   defp map_queues(queue) when is_binary(queue) do
-    %Queue{name: queue, concurrency: :infinity}
+    %Queue{name: queue, max_concurrency: :infinity}
   end
 
   defp map_queues({queue, opts}) when is_binary(queue) do
-    concurrency = Keyword.get(opts, :concurrency, :infinity)
-    %Queue{name: queue, concurrency: concurrency}
+    max_concurrency = Keyword.get(opts, :max_concurrency, :infinity)
+    %Queue{name: queue, max_concurrency: max_concurrency}
   end
 
-  defp map_queue_to_fetch(%{concurrency: :infinity} = queue, acc) do
+  defp map_queue_to_fetch(%{max_concurrency: :infinity} = queue, acc) do
     {queue.name, [queue | acc]}
   end
 
-  defp map_queue_to_fetch(%{concurrency: 0} = queue, acc) do
+  defp map_queue_to_fetch(%{max_concurrency: 0} = queue, acc) do
     {nil, [queue | acc]}
   end
 
-  defp map_queue_to_fetch(%{concurrency: concurrency} = queue, acc) when concurrency > 0 do
-    queue = %{queue | concurrency: concurrency - 1}
+  defp map_queue_to_fetch(%{max_concurrency: max_concurrency} = queue, acc)
+       when max_concurrency > 0 do
+    queue = %{queue | max_concurrency: max_concurrency - 1}
     {queue.name, [queue | acc]}
   end
 
-  defp update_checkin_queues(%{concurrency: :infinity} = queue, _), do: queue
+  defp update_checkin_queues(%{max_concurrency: :infinity} = queue, _), do: queue
 
   defp update_checkin_queues(queue, checkin_queues) do
     if Enum.member?(checkin_queues, queue.name) do
-      %{queue | concurrency: queue.concurrency + 1}
+      %{queue | max_concurrency: queue.max_concurrency + 1}
     else
       queue
     end

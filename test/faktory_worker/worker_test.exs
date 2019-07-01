@@ -940,7 +940,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   describe "checkin_queues/1" do
     test "should checkin the queues with the queue manager" do
-      worker_pool = [queues: [{"test_queue", concurrency: 1}]]
+      worker_pool = [queues: [{"test_queue", max_concurrency: 1}]]
 
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
@@ -951,12 +951,12 @@ defmodule FaktoryWorker.WorkerTest do
 
       manager_state_after = :sys.get_state(pid)
 
-      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", concurrency: 0}]
-      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", concurrency: 1}]
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 0}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
     end
 
     test "should return ok when queues are nil" do
-      worker_pool = [queues: [{"test_queue", concurrency: 1}]]
+      worker_pool = [queues: [{"test_queue", max_concurrency: 1}]]
 
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
@@ -967,8 +967,8 @@ defmodule FaktoryWorker.WorkerTest do
 
       manager_state_after = :sys.get_state(pid)
 
-      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", concurrency: 1}]
-      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", concurrency: 1}]
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
     end
   end
 

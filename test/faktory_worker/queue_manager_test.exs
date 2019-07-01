@@ -17,7 +17,7 @@ defmodule FaktoryWorker.QueueManagerTest do
     test "should set the queues state" do
       opts = [
         name: FaktoryWorker,
-        worker_pool: [queues: ["test1", {"test2", concurrency: 5}, "test3"]]
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 5}, "test3"]]
       ]
 
       {:ok, pid} = QueueManager.start_link(opts)
@@ -25,9 +25,9 @@ defmodule FaktoryWorker.QueueManagerTest do
       state = :sys.get_state(pid)
 
       assert state == [
-               %QueueManager.Queue{name: "test1", concurrency: :infinity},
-               %QueueManager.Queue{name: "test2", concurrency: 5},
-               %QueueManager.Queue{name: "test3", concurrency: :infinity}
+               %QueueManager.Queue{name: "test1", max_concurrency: :infinity},
+               %QueueManager.Queue{name: "test2", max_concurrency: 5},
+               %QueueManager.Queue{name: "test3", max_concurrency: :infinity}
              ]
     end
   end
@@ -42,7 +42,7 @@ defmodule FaktoryWorker.QueueManagerTest do
     test "should return a list of queues eligible to fetch on" do
       opts = [
         name: FaktoryWorker,
-        worker_pool: [queues: ["test1", {"test2", concurrency: 5}, "test3"]]
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 5}, "test3"]]
       ]
 
       {:ok, pid} = QueueManager.start_link(opts)
@@ -52,8 +52,11 @@ defmodule FaktoryWorker.QueueManagerTest do
       assert queues == ["test1", "test2", "test3"]
     end
 
-    test "should update the concurrency state when checking out a queue" do
-      opts = [name: FaktoryWorker, worker_pool: [queues: ["test1", {"test2", concurrency: 5}]]]
+    test "should update the max concurrency state when checking out a queue" do
+      opts = [
+        name: FaktoryWorker,
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 5}]]
+      ]
 
       {:ok, pid} = QueueManager.start_link(opts)
 
@@ -63,13 +66,16 @@ defmodule FaktoryWorker.QueueManagerTest do
       assert queues == ["test1", "test2"]
 
       assert state == [
-               %QueueManager.Queue{name: "test1", concurrency: :infinity},
-               %QueueManager.Queue{name: "test2", concurrency: 4}
+               %QueueManager.Queue{name: "test1", max_concurrency: :infinity},
+               %QueueManager.Queue{name: "test2", max_concurrency: 4}
              ]
     end
 
-    test "should not return a queue when the concurrency reaches 0" do
-      opts = [name: FaktoryWorker, worker_pool: [queues: ["test1", {"test2", concurrency: 1}]]]
+    test "should not return a queue when the max concurrency reaches 0" do
+      opts = [
+        name: FaktoryWorker,
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 1}]]
+      ]
 
       {:ok, pid} = QueueManager.start_link(opts)
 
@@ -82,15 +88,18 @@ defmodule FaktoryWorker.QueueManagerTest do
       assert queues_result2 == ["test1"]
 
       assert state == [
-               %QueueManager.Queue{name: "test1", concurrency: :infinity},
-               %QueueManager.Queue{name: "test2", concurrency: 0}
+               %QueueManager.Queue{name: "test1", max_concurrency: :infinity},
+               %QueueManager.Queue{name: "test2", max_concurrency: 0}
              ]
     end
   end
 
   describe "checkin_queues/2" do
-    test "it should update the queues concurrency counts when checking in a queue with a concurrency set" do
-      opts = [name: FaktoryWorker, worker_pool: [queues: ["test1", {"test2", concurrency: 1}]]]
+    test "it should update the queues max concurrency counts when checking in a queue with a max concurrency set" do
+      opts = [
+        name: FaktoryWorker,
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 1}]]
+      ]
 
       {:ok, pid} = QueueManager.start_link(opts)
 
@@ -99,13 +108,16 @@ defmodule FaktoryWorker.QueueManagerTest do
       state = :sys.get_state(pid)
 
       assert state == [
-               %QueueManager.Queue{name: "test1", concurrency: :infinity},
-               %QueueManager.Queue{name: "test2", concurrency: 2}
+               %QueueManager.Queue{name: "test1", max_concurrency: :infinity},
+               %QueueManager.Queue{name: "test2", max_concurrency: 2}
              ]
     end
 
-    test "it should not update the concurrency value when the queue is not checked in" do
-      opts = [name: FaktoryWorker, worker_pool: [queues: ["test1", {"test2", concurrency: 1}]]]
+    test "it should not update the max concurrency value when the queue is not checked in" do
+      opts = [
+        name: FaktoryWorker,
+        worker_pool: [queues: ["test1", {"test2", max_concurrency: 1}]]
+      ]
 
       {:ok, pid} = QueueManager.start_link(opts)
 
@@ -114,8 +126,8 @@ defmodule FaktoryWorker.QueueManagerTest do
       state = :sys.get_state(pid)
 
       assert state == [
-               %QueueManager.Queue{name: "test1", concurrency: :infinity},
-               %QueueManager.Queue{name: "test2", concurrency: 1}
+               %QueueManager.Queue{name: "test1", max_concurrency: :infinity},
+               %QueueManager.Queue{name: "test2", max_concurrency: 1}
              ]
     end
   end

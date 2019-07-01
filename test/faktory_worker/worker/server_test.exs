@@ -110,7 +110,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "terminate/2" do
     test "should check in the queues with the queue manager" do
-      worker_pool = [queues: [{"test_queue", concurrency: 1}]]
+      worker_pool = [queues: [{"test_queue", max_concurrency: 1}]]
 
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
@@ -121,8 +121,8 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       manager_state_after = :sys.get_state(pid)
 
-      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", concurrency: 0}]
-      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", concurrency: 1}]
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 0}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
     end
 
     test "should successfully terminate when queues is set to nil" do
