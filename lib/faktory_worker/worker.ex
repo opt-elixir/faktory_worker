@@ -6,6 +6,7 @@ defmodule FaktoryWorker.Worker do
   alias FaktoryWorker.ConnectionManager
   alias FaktoryWorker.WorkerLogger
   alias FaktoryWorker.ErrorFormatter
+  alias FaktoryWorker.QueueManager
 
   @type t :: %__MODULE__{}
 
@@ -32,7 +33,6 @@ defmodule FaktoryWorker.Worker do
   def new(opts) do
     faktory_name = Keyword.get(opts, :faktory_name, FaktoryWorker)
     process_wid = Keyword.fetch!(opts, :process_wid)
-    queues = Keyword.fetch!(opts, :queues)
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch)
 
@@ -53,7 +53,6 @@ defmodule FaktoryWorker.Worker do
       disable_fetch: disable_fetch,
       process_wid: process_wid,
       worker_state: :ok,
-      queues: queues,
       faktory_name: faktory_name,
       retry_interval: retry_interval
     }
@@ -64,15 +63,17 @@ defmodule FaktoryWorker.Worker do
   def send_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
     job_supervisor = job_supervisor_name(state)
 
+    queues = checkout_queues(state)
+
     fetch_ref =
       Task.Supervisor.async_nolink(
         job_supervisor,
         fn ->
-          send_command(state.conn_pid, {:fetch, state.queues})
+          send_command(state.conn_pid, {:fetch, queues})
         end
       )
 
-    %{state | fetch_ref: fetch_ref}
+    %{state | fetch_ref: fetch_ref, queues: queues}
   end
 
   def send_fetch(state), do: state
@@ -90,12 +91,16 @@ defmodule FaktoryWorker.Worker do
 
   @spec ack_job(state :: __MODULE__.t(), :ok | {:error, any()}) :: __MODULE__.t()
   def ack_job(state, :ok) do
+    checkin_queues(state)
+
     state.conn_pid
     |> send_command({:ack, state.job_id})
     |> handle_ack_response(:ok, state)
   end
 
   def ack_job(state, {:error, reason}) do
+    checkin_queues(state)
+
     backtrace_length = Map.get(state.job, "backtrace", 30)
 
     error = ErrorFormatter.format_error(reason, backtrace_length)
@@ -156,6 +161,13 @@ defmodule FaktoryWorker.Worker do
     state
   end
 
+  @spec checkin_queues(state :: __MODULE__.t()) :: :ok
+  def checkin_queues(%{queues: nil}), do: :ok
+
+  def checkin_queues(%{queues: queues} = state) do
+    QueueManager.checkin_queues(queue_manager_name(state), queues)
+  end
+
   defp schedule_fetch(%{disable_fetch: true} = state), do: state
 
   defp schedule_fetch(%{worker_state: worker_state} = state) when worker_state == :ok do
@@ -170,6 +182,7 @@ defmodule FaktoryWorker.Worker do
     schedule_fetch(%{
       state
       | worker_state: :ok,
+        queues: nil,
         job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
@@ -184,6 +197,7 @@ defmodule FaktoryWorker.Worker do
     schedule_fetch(%{
       state
       | worker_state: :ok,
+        queues: nil,
         job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
@@ -191,8 +205,18 @@ defmodule FaktoryWorker.Worker do
     })
   end
 
+  defp checkout_queues(%{queues: nil} = state) do
+    QueueManager.checkout_queues(queue_manager_name(state))
+  end
+
+  defp checkout_queues(%{queues: queues}), do: queues
+
   defp job_supervisor_name(%{faktory_name: faktory_name}) do
     FaktoryWorker.JobSupervisor.format_supervisor_name(faktory_name)
+  end
+
+  defp queue_manager_name(%{faktory_name: faktory_name}) do
+    QueueManager.format_queue_manager_name(faktory_name)
   end
 
   defp cancel_timer(nil), do: :ok

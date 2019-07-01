@@ -7,6 +7,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Random
+  alias FaktoryWorker.QueueManager
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -39,11 +40,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
   describe "start_link/1" do
     test "should start the worker server" do
-      opts = [
-        name: :test_worker_1,
-        process_wid: Random.process_wid(),
-        queues: ["test_queue"]
-      ]
+      opts = [name: :test_worker_1, process_wid: Random.process_wid()]
 
       pid = start_supervised!(Server.child_spec(opts))
 
@@ -58,7 +55,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -100,7 +96,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -113,6 +108,28 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
   end
 
+  describe "terminate/2" do
+    test "should check in the queues with the queue manager" do
+      worker_pool = [queues: [{"test_queue", concurrency: 1}]]
+
+      pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
+
+      state = %{faktory_name: FaktoryWorker, queues: QueueManager.checkout_queues(pid)}
+      manager_state_before = :sys.get_state(pid)
+
+      Server.terminate(:shutdown, state)
+
+      manager_state_after = :sys.get_state(pid)
+
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", concurrency: 0}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", concurrency: 1}]
+    end
+
+    test "should successfully terminate when queues is set to nil" do
+      assert :ok == Server.terminate(:shutdown, %{faktory_name: FaktoryWorker, queues: nil})
+    end
+  end
+
   describe "job timeout" do
     test "should ignore a job timeout when the job completed before the timeout message is handled" do
       worker_connection_mox()
@@ -120,7 +137,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -159,7 +175,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -204,7 +219,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -225,6 +239,12 @@ defmodule FaktoryWorker.Worker.ServerTest do
     end
 
     test "should send 'FAIL' command when a job times out" do
+      worker_pool = [queues: ["timeout_queue"]]
+
+      start_supervised!(
+        {FaktoryWorker.QueueManager, name: FaktoryWorker, worker_pool: worker_pool}
+      )
+
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       job =
@@ -273,7 +293,6 @@ defmodule FaktoryWorker.Worker.ServerTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
