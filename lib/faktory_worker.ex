@@ -8,6 +8,7 @@ defmodule FaktoryWorker do
     opts = Keyword.put_new(opts, :name, __MODULE__)
 
     children = [
+      {FaktoryWorker.QueueManager, opts},
       {FaktoryWorker.Pool, opts},
       {FaktoryWorker.PushPipeline, opts},
       {FaktoryWorker.JobSupervisor, opts},

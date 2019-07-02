@@ -7,6 +7,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   alias FaktoryWorker.Worker
   alias FaktoryWorker.Random
+  alias FaktoryWorker.QueueManager
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -14,13 +15,13 @@ defmodule FaktoryWorker.WorkerTest do
   describe "new/2" do
     test "should return a worker struct" do
       process_wid = Random.process_wid()
-      opts = [process_wid: process_wid, queues: ["test_queue", "test_queue_two"]]
+      opts = [process_wid: process_wid]
 
       worker = Worker.new(opts)
 
       assert worker.process_wid == process_wid
       assert worker.worker_state == :ok
-      assert worker.queues == ["test_queue", "test_queue_two"]
+      assert worker.queues == nil
       assert worker.job_ref == nil
       assert worker.job_id == nil
       assert worker.job_timeout_ref == nil
@@ -32,20 +33,11 @@ defmodule FaktoryWorker.WorkerTest do
       end
     end
 
-    test "should raise if no queues is provided" do
-      opts = [process_wid: Random.process_wid()]
-
-      assert_raise KeyError, "key :queues not found in: #{inspect(opts)}", fn ->
-        Worker.new(opts)
-      end
-    end
-
     test "should open a new worker connection" do
       worker_connection_mox()
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -55,7 +47,7 @@ defmodule FaktoryWorker.WorkerTest do
     end
 
     test "should schedule a fetch to be triggered" do
-      opts = [process_wid: Random.process_wid(), queues: ["test_queue"]]
+      opts = [process_wid: Random.process_wid()]
 
       Worker.new(opts)
 
@@ -65,6 +57,9 @@ defmodule FaktoryWorker.WorkerTest do
 
   describe "send_fetch/1" do
     test "should send a fetch command and schedule next fetch when state is ':ok'" do
+      worker_pool = [queues: ["test_queue"]]
+
+      start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       worker_connection_mox()
@@ -79,7 +74,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -97,7 +91,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -116,7 +109,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -135,7 +127,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -150,6 +141,9 @@ defmodule FaktoryWorker.WorkerTest do
     end
 
     test "should start the fetch command in a new process" do
+      worker_pool = [queues: ["test_queue"]]
+
+      start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       job =
@@ -178,7 +172,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -193,6 +186,9 @@ defmodule FaktoryWorker.WorkerTest do
     end
 
     test "should send a fetch command with multiple queues" do
+      worker_pool = [queues: ["test_queue", "default"]]
+
+      start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       worker_connection_mox()
@@ -207,7 +203,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue", "default"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -218,6 +213,39 @@ defmodule FaktoryWorker.WorkerTest do
       consume_initial_fetch_message()
 
       assert_receive :fetch
+    end
+
+    test "should maintain the queues between fetches that do not return a job" do
+      worker_pool = [queues: ["test_queue", "default"]]
+
+      start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue default\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$-1\r\n"}
+      end)
+
+      opts = [
+        process_wid: Random.process_wid(),
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      state =
+        opts
+        |> Worker.new()
+        |> Worker.send_fetch()
+
+      consume_initial_fetch_message()
+
+      state = Worker.send_fetch(state)
+
+      assert state.queues == ["test_queue", "default"]
     end
   end
 
@@ -253,7 +281,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -290,7 +317,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -316,7 +342,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -337,7 +362,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -362,7 +386,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["timeout_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -433,7 +456,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         retry_interval: 1,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -464,7 +486,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         retry_interval: 1,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -521,7 +542,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -562,7 +582,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -594,7 +613,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -632,7 +650,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -686,7 +703,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -730,7 +746,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -772,7 +787,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -827,7 +841,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -864,7 +877,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -908,7 +920,6 @@ defmodule FaktoryWorker.WorkerTest do
 
       opts = [
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
@@ -924,6 +935,40 @@ defmodule FaktoryWorker.WorkerTest do
 
       assert result.job_timeout_ref == nil
       assert Process.cancel_timer(timer_ref) == false
+    end
+  end
+
+  describe "checkin_queues/1" do
+    test "should checkin the queues with the queue manager" do
+      worker_pool = [queues: [{"test_queue", max_concurrency: 1}]]
+
+      pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
+
+      state = %{faktory_name: FaktoryWorker, queues: QueueManager.checkout_queues(pid)}
+      manager_state_before = :sys.get_state(pid)
+
+      Worker.checkin_queues(state)
+
+      manager_state_after = :sys.get_state(pid)
+
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 0}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
+    end
+
+    test "should return ok when queues are nil" do
+      worker_pool = [queues: [{"test_queue", max_concurrency: 1}]]
+
+      pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
+
+      state = %{faktory_name: FaktoryWorker, queues: nil}
+      manager_state_before = :sys.get_state(pid)
+
+      :ok = Worker.checkin_queues(state)
+
+      manager_state_after = :sys.get_state(pid)
+
+      assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
+      assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
     end
   end
 

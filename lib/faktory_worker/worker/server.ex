@@ -79,6 +79,11 @@ defmodule FaktoryWorker.Worker.Server do
     {:stop, :normal, %{state | conn_pid: nil}}
   end
 
+  @impl true
+  def terminate(_, state) do
+    Worker.checkin_queues(state)
+  end
+
   defp name_from_opts(opts) do
     Keyword.get(opts, :name, __MODULE__)
   end

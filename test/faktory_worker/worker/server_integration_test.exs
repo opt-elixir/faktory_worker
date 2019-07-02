@@ -14,7 +14,6 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        queues: ["test_queue"],
         disable_fetch: true
       ]
 

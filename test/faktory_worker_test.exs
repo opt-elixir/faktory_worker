@@ -19,6 +19,7 @@ defmodule FaktoryWorkerTest do
       config = get_child_spec_config(child_spec)
 
       assert config == [
+               {FaktoryWorker.QueueManager, [name: :my_test_faktory]},
                {FaktoryWorker.Pool, [name: :my_test_faktory]},
                {FaktoryWorker.PushPipeline, [name: :my_test_faktory]},
                {FaktoryWorker.JobSupervisor, [name: :my_test_faktory]},
@@ -37,6 +38,7 @@ defmodule FaktoryWorkerTest do
       config = get_child_spec_config(child_spec)
 
       assert config == [
+               {FaktoryWorker.QueueManager, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.Pool, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.PushPipeline, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.JobSupervisor, [name: FaktoryWorker, pool: [size: 25]]},
@@ -56,6 +58,8 @@ defmodule FaktoryWorkerTest do
       config = get_child_spec_config(child_spec)
 
       assert config == [
+               {FaktoryWorker.QueueManager,
+                [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
                {FaktoryWorker.Pool,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
                {FaktoryWorker.PushPipeline,
@@ -75,6 +79,7 @@ defmodule FaktoryWorkerTest do
         {Supervisor, :start_link,
          [
            [
+             {FaktoryWorker.QueueManager, [name: FaktoryWorker]},
              {FaktoryWorker.Pool, [name: FaktoryWorker]},
              {FaktoryWorker.PushPipeline, [name: FaktoryWorker]},
              {FaktoryWorker.JobSupervisor, [name: FaktoryWorker]},

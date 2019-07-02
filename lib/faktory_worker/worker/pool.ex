@@ -20,7 +20,6 @@ defmodule FaktoryWorker.Worker.Pool do
     connection_opts = Keyword.get(opts, :connection, [])
     process_wid = Keyword.get(opts, :process_wid)
     pool_opts = Keyword.get(opts, :worker_pool, [])
-    queues = Keyword.get(pool_opts, :queues, ["default"])
     disable_fetch = Keyword.get(pool_opts, :disable_fetch, false)
 
     opts = [
@@ -28,8 +27,7 @@ defmodule FaktoryWorker.Worker.Pool do
       faktory_name: Keyword.get(opts, :name),
       connection: connection_opts,
       process_wid: process_wid,
-      disable_fetch: disable_fetch,
-      queues: queues
+      disable_fetch: disable_fetch
     ]
 
     FaktoryWorker.Worker.Server.child_spec(opts)
