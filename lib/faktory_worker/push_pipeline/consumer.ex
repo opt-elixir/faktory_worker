@@ -1,7 +1,7 @@
 defmodule FaktoryWorker.PushPipeline.Consumer do
   @moduledoc false
 
-  alias FaktoryWorker.WorkerLogger
+  alias FaktoryWorker.EventDispatcher
   alias FaktoryWorker.{ConnectionManager, Pool}
 
   @behaviour Broadway
@@ -26,9 +26,8 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
   end
 
   defp send_command_result({:ok, _}, job) do
-    WorkerLogger.log_push(job.jid, job.args, job.jobtype)
-    :ok
+    EventDispatcher.dispatch_event(:push, :ok, job)
   end
 
-  defp send_command_result({:error, reason}, _), do: {:failed, reason}
+  defp send_command_result({:error, reason}, _), do: {:error, reason}
 end

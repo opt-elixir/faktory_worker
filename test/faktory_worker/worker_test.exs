@@ -3,7 +3,7 @@ defmodule FaktoryWorker.WorkerTest do
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
-  import ExUnit.CaptureLog
+  import FaktoryWorker.EventHandlerTestHelpers
 
   alias FaktoryWorker.Worker
   alias FaktoryWorker.Random
@@ -449,7 +449,9 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive :fetch
     end
 
-    test "should log error, sleep, and then successfully fetch next time" do
+    test "should dispatch event, sleep, and then successfully fetch next time" do
+      event_handler_id = attach_event_handler([:fetch])
+
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       worker_connection_mox()
@@ -464,20 +466,22 @@ defmodule FaktoryWorker.WorkerTest do
 
       consume_initial_fetch_message()
 
-      log_message =
-        capture_log(fn ->
-          Worker.handle_fetch_response({:error, "Shutdown in progress"}, state)
-        end)
+      Worker.handle_fetch_response({:error, "Shutdown in progress"}, state)
 
-      assert log_message =~
-               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
-                 state.process_wid
-               }"
+      assert_receive {[:faktory_worker, :fetch], outcome, metadata}
+      assert outcome == %{status: {:error, "Shutdown in progress"}}
+
+      assert metadata == %{
+               wid: state.process_wid
+             }
 
       assert_receive :fetch
+
+      detach_event_handler(event_handler_id)
     end
 
-    test "should log error and schedule next fetch when worker cannot connect" do
+    test "should dispatch event and schedule next fetch when worker cannot connect" do
+      event_handler_id = attach_event_handler([:fetch])
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
       expect(FaktoryWorker.SocketMock, :connect, fn _host, _port, _opts ->
@@ -492,17 +496,18 @@ defmodule FaktoryWorker.WorkerTest do
 
       state = Worker.new(opts)
 
-      log_message =
-        capture_log(fn ->
-          Worker.handle_fetch_response({:error, "Failed to connect to Faktory"}, state)
-        end)
+      Worker.handle_fetch_response({:error, "Failed to connect to Faktory"}, state)
 
-      assert log_message =~
-               "[faktory-worker] Failed to fetch job due to 'Failed to connect to Faktory' wid-#{
-                 state.process_wid
-               }"
+      assert_receive {[:faktory_worker, :fetch], outcome, metadata}
+      assert outcome == %{status: {:error, "Failed to connect to Faktory"}}
+
+      assert metadata == %{
+               wid: state.process_wid
+             }
 
       assert_receive :fetch
+
+      detach_event_handler(event_handler_id)
     end
   end
 
@@ -556,7 +561,8 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.job_timeout_ref == nil
     end
 
-    test "should log that a successful 'ACK' was sent to faktory" do
+    test "should dispatch an event for a successful 'ACK' was sent to faktory" do
+      event_handler_id = attach_event_handler([:ack])
       job_id = Random.string()
 
       job = %{
@@ -585,14 +591,20 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      log_message =
-        capture_log(fn ->
-          opts
-          |> new_running_worker(job)
-          |> Worker.ack_job(:ok)
-        end)
+      opts
+      |> new_running_worker(job)
+      |> Worker.ack_job(:ok)
 
-      assert log_message =~ "Succeeded (FaktoryWorker.TestQueueWorker) jid-#{job_id}"
+      assert_receive {[:faktory_worker, :ack], outcome, metadata}
+      assert outcome == %{status: :ok}
+
+      assert metadata == %{
+               jid: job_id,
+               args: [%{"hey" => "there!"}],
+               jobtype: "FaktoryWorker.TestQueueWorker"
+             }
+
+      detach_event_handler(event_handler_id)
     end
 
     test "should schedule the next fetch for a successful ack" do
@@ -668,7 +680,8 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.job_timeout_ref == nil
     end
 
-    test "should log that a 'FAIL' was sent to faktory" do
+    test "should dispatch event for a 'FAIL' was sent to faktory" do
+      event_handler_id = attach_event_handler([:ack])
       job_id = Random.string()
 
       job = %{
@@ -709,14 +722,20 @@ defmodule FaktoryWorker.WorkerTest do
 
       error = {%RuntimeError{message: "It went bang!"}, stacktrace}
 
-      log_message =
-        capture_log(fn ->
-          opts
-          |> new_running_worker(job)
-          |> Worker.ack_job({:error, error})
-        end)
+      opts
+      |> new_running_worker(job)
+      |> Worker.ack_job({:error, error})
 
-      assert log_message =~ "Failed (FaktoryWorker.TestQueueWorker) jid-#{job_id}"
+      assert_receive {[:faktory_worker, :ack], outcome, metadata}
+      assert outcome == %{status: :error}
+
+      assert metadata == %{
+               jid: job_id,
+               args: [%{"hey" => "there!"}],
+               jobtype: "FaktoryWorker.TestQueueWorker"
+             }
+
+      detach_event_handler(event_handler_id)
     end
 
     test "should schedule the next fetch for an unsuccessful ack" do
@@ -758,9 +777,16 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive :fetch
     end
 
-    test "should log when there was an error sending the ack" do
+    test "should dispatch an event when there was an error sending the ack" do
+      event_handler_id = attach_event_handler([:failed_ack])
+
       job_id = Random.string()
-      job = %{"jid" => job_id}
+
+      job = %{
+        "jid" => job_id,
+        "args" => [%{"hey" => "there!"}],
+        "jobtype" => "FaktoryWorker.TestQueueWorker"
+      }
 
       ack_command = "ACK {\"jid\":\"#{job_id}\"}\r\n"
 
@@ -790,24 +816,36 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      log_message =
-        capture_log(fn ->
-          opts
-          |> new_running_worker(job)
-          |> Worker.ack_job(:ok)
-        end)
+      opts
+      |> new_running_worker(job)
+      |> Worker.ack_job(:ok)
 
       consume_initial_fetch_message()
 
-      assert log_message =~
-               "Error sending 'ACK' acknowledgement to faktory"
+      assert_receive {[:faktory_worker, :failed_ack], outcome, metadata}
+      assert outcome == %{status: :ok}
+
+      assert metadata == %{
+               jid: job_id,
+               args: [%{"hey" => "there!"}],
+               jobtype: "FaktoryWorker.TestQueueWorker"
+             }
 
       assert_receive :fetch
+
+      detach_event_handler(event_handler_id)
     end
 
-    test "should log when there was an error sending the fail" do
+    test "should dispatch an event when there was an error sending the fail" do
+      event_handler_id = attach_event_handler([:failed_ack])
+
       job_id = Random.string()
-      job = %{"jid" => job_id}
+
+      job = %{
+        "jid" => job_id,
+        "args" => [%{"hey" => "there!"}],
+        "jobtype" => "FaktoryWorker.TestQueueWorker"
+      }
 
       fail_payload = %{
         jid: job_id,
@@ -844,19 +882,24 @@ defmodule FaktoryWorker.WorkerTest do
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
-      log_message =
-        capture_log(fn ->
-          opts
-          |> new_running_worker(job)
-          |> Worker.ack_job({:error, :exit})
-        end)
+      opts
+      |> new_running_worker(job)
+      |> Worker.ack_job({:error, :exit})
 
       consume_initial_fetch_message()
 
-      assert log_message =~
-               "Error sending 'FAIL' acknowledgement to faktory"
+      assert_receive {[:faktory_worker, :failed_ack], outcome, metadata}
+      assert outcome == %{status: :error}
+
+      assert metadata == %{
+               jid: job_id,
+               args: [%{"hey" => "there!"}],
+               jobtype: "FaktoryWorker.TestQueueWorker"
+             }
 
       assert_receive :fetch
+
+      detach_event_handler(event_handler_id)
     end
 
     test "should cancel the job timeout when acknowledging a successful job" do

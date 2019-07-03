@@ -2,7 +2,7 @@ defmodule FaktoryWorker.PushPipeline.Acknowledger do
   @moduledoc false
 
   alias FaktoryWorker.Job
-  alias FaktoryWorker.WorkerLogger
+  alias FaktoryWorker.EventDispatcher
 
   @behaviour Broadway.Acknowledger
 
@@ -11,8 +11,8 @@ defmodule FaktoryWorker.PushPipeline.Acknowledger do
     Enum.each(failed_messages, &handle_failed_message/1)
   end
 
-  defp handle_failed_message(%{status: {:failed, :not_unique}, data: {_, job}}) do
-    WorkerLogger.log_not_unique_job(job.jid, job.args, job.jobtype)
+  defp handle_failed_message(%{status: {:error, :not_unique}, data: {_, job}}) do
+    EventDispatcher.dispatch_event(:push, {:error, :not_unique}, job)
   end
 
   defp handle_failed_message(%{data: {pipeline, payload}}) do

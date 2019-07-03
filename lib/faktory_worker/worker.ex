@@ -4,7 +4,7 @@ defmodule FaktoryWorker.Worker do
   require Logger
 
   alias FaktoryWorker.ConnectionManager
-  alias FaktoryWorker.WorkerLogger
+  alias FaktoryWorker.EventDispatcher
   alias FaktoryWorker.ErrorFormatter
   alias FaktoryWorker.QueueManager
 
@@ -156,7 +156,7 @@ defmodule FaktoryWorker.Worker do
   def handle_fetch_response({:ok, _}, state), do: schedule_fetch(state)
 
   def handle_fetch_response({:error, reason}, state) do
-    WorkerLogger.log_fetch(:error, state.process_wid, reason)
+    EventDispatcher.dispatch_event(:fetch, {:error, reason}, %{wid: state.process_wid})
     Process.send_after(self(), :fetch, state.retry_interval)
     state
   end
@@ -176,7 +176,12 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:ok, _}, ack_type, state) do
-    WorkerLogger.log_ack(ack_type, state.job_id, state.job["args"], state.job["jobtype"])
+    EventDispatcher.dispatch_event(:ack, ack_type, %{
+      jid: state.job_id,
+      args: state.job["args"],
+      jobtype: state.job["jobtype"]
+    })
+
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
@@ -191,7 +196,12 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:error, _}, ack_type, state) do
-    WorkerLogger.log_failed_ack(ack_type, state.job_id, state.job["args"], state.job["jobtype"])
+    EventDispatcher.dispatch_event(:failed_ack, ack_type, %{
+      jid: state.job_id,
+      args: state.job["args"],
+      jobtype: state.job["jobtype"]
+    })
+
     cancel_timer(state.job_timeout_ref)
 
     schedule_fetch(%{
