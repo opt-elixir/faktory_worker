@@ -4,13 +4,14 @@ defmodule FaktoryWorker.MixProject do
   def project do
     [
       app: :faktory_worker,
-      version: "0.1.0",
+      version: "1.0.0",
       elixir: "~> 1.8",
       description: description(),
       package: package(),
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
+      docs: docs(),
       deps: deps()
     ]
   end
@@ -28,11 +29,27 @@ defmodule FaktoryWorker.MixProject do
     [
       {:broadway, "~> 0.3.0"},
       {:certifi, "~> 2.5"},
-      {:ex_doc, "~> 0.20.0", only: :dev},
       {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
       {:poolboy, "~> 1.5"},
+      {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:mox, "~> 0.5", only: :test}
+    ]
+  end
+
+  defp docs() do
+    [
+      name: "Faktory Worker",
+      main: "faktory-worker",
+      extras: doc_extras(),
+      source_url: "https://github.com/SeatedInc/faktory_worker"
+    ]
+  end
+
+  defp doc_extras() do
+    [
+      "README.md": [filename: "faktory-worker"],
+      "configuration.md": [filename: "configuration", title: "Configuration"]
     ]
   end
 
