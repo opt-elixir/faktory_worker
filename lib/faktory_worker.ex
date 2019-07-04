@@ -1,6 +1,27 @@
 defmodule FaktoryWorker do
   @moduledoc """
-  TODO: docs
+  The `FaktoryWorker` module provides everything required to setup workers for sending and fetching jobs.
+
+  It is expected that FaktoryWorker will be configured and started as part of a supervision tree. Multiple instances of
+  FaktoryWorker can be configured by providing the `:name`  option which must be unique.
+
+  This module can either be configured using all default options.
+
+  ```elixir
+  children = [
+    FaktoryWorker
+  ]
+  ```
+
+  Or by using the two element tuple format accepting a list of options as the second element.
+
+  ```elixir
+  children = [
+    {FaktoryWorker, [name: :faktory_test, ...]}
+  ]
+  ```
+
+  For a full list of configuration options see the [Configuration](configuration.html) documentation.
   """
 
   @doc false

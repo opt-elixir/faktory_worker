@@ -1,4 +1,6 @@
 defmodule FaktoryWorker.Worker.Pool do
+  @moduledoc false
+
   use Supervisor
 
   @spec start_link(opts :: keyword()) :: Supervisor.on_start()

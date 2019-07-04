@@ -2,6 +2,8 @@ defmodule FaktoryWorker.ErrorFormatter do
   @moduledoc false
 
   defmodule FormattedError do
+    @moduledoc false
+
     defstruct [:type, :message, :stacktrace]
   end
 

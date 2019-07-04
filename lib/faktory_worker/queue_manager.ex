@@ -4,6 +4,8 @@ defmodule FaktoryWorker.QueueManager do
   use Agent
 
   defmodule Queue do
+    @moduledoc false
+
     @enforce_keys [:name, :max_concurrency]
     defstruct [:name, :max_concurrency]
   end
