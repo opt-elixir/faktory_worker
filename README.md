@@ -47,7 +47,8 @@ def application do
 end
 ```
 
-This will start Faktory Worker using the default configuration. For a full list of available configuration options see the [Configuration](configuration.html) documentation.
+This will start Faktory Worker using the default configuration. For details on how to configure Faktory Worker
+see the [FaktoryWorker](faktoryworker.html) documentation.
 
 Next you can create a worker to handle job processing.
 

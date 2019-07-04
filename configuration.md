@@ -33,19 +33,19 @@ Below is the full structure of available options and a definition for each one.
 
 - `name` (default: `FaktoryWorker`) - The name to use for this instance. This is useful if you want to run more than one instance of Faktory Worker. When using this make sure the workers are configured to use the correct instance (see [Worker Configuration](#worker-configuration) below).
 
-- `connection` - A list of options used to configure the connection to Faktory.
+- `connection` - A list of options to configure the connection to Faktory.
 
   - `host` (default: `"localhost"`) - The host name used to connect to Faktory.
   - `port` (default: `7419`) - The tcp port used to connect to Faktory.
   - `password` (default: `nil`) - The password used to authenticate with Faktory.
-  - `use_tls` (default: `false`) - A boolean flag that indicates whether Faktory Worker should connect using a `tls` connection.
+  - `use_tls` (default: `false`) - A boolean flag that indicates whether Faktory Worker should connect using a TLS connection.
 
-- `pool` - A list of options used to configure the pool of Faktory connections used for sending jobs to faktory.
+- `pool` - A list of options to configure the pool of Faktory connections used for sending jobs to faktory.
 
   - `size` (default: `10`) - The number of connections to open to Faktory.
-  - `buffer_size` (default: `:infinity`) - The number of jobs that can be stored in memory whilst waiting for an available connection from the pool. Note that this is defaults to `:infinity` to prevent losing jobs during high load scenarios. This could potentially lead to increased memory consumtion if there is low throughput to Faktory.
+  - `buffer_size` (default: `:infinity`) - The number of jobs that can be stored in memory whilst waiting for an available connection from the pool. Note that this defaults to `:infinity` to prevent losing jobs during high load scenarios. This could potentially lead to increased memory consumtion if there is low throughput to Faktory.
 
-- `worker_pool` - A list of options used to configure the Faktory workers.
+- `worker_pool` - A list of options to configure the Faktory workers.
   - `size` (default: `10`) - The number of worker connections to open to Faktory.
   - `disable_fetch` (default: `false`) - A boolean flag used to disable fetching on each of the workers. This is useful if you want to prevent the workers from fetching new jobs without having to remove the queues config.
   - `queues` (default: `["default"]`) - A list of queues that the workers should fetch jobs from. See the [Configuring Queues](#configuring-queues) section below for more details.
