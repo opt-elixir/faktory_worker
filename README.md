@@ -100,7 +100,7 @@ We always appreciate contributions whether they are testing, reporting issues, f
 
 ## Developing
 
-Faktory Worker includes a docker compose file that provisons all of the Faktory instances required to run the test suite.
+Faktory Worker includes a docker compose file that provisions all of the Faktory instances required to run the test suite.
 
 If you have docker compose installed you can run the `up` command from the Faktory Worker directory to start everything required.
 
