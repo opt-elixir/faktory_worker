@@ -70,7 +70,7 @@ Now you can start sending jobs to faktory and they will be automatically picked 
 
 ## Sending multiple job arguments
 
-It's possible to send more that one argument to Faktory by passing a list of data to `perform_async/1`. Picking up from the example in the [Getting up and running](#getting-up-and-running) section we can modify our worker by adding another `perform` function with an artity that matches the number of job arguments we expect to send to Faktory.
+It's possible to send more than one argument to Faktory by passing a list of data to `perform_async/1`. Picking up from the example in the [Getting up and running](#getting-up-and-running) section we can modify our worker by adding another `perform` function with an arity that matches the number of job arguments we expect to send to Faktory.
 
 ```elixir
 defmodule MyApp.SomeWorker do
