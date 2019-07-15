@@ -94,6 +94,28 @@ With this new function in place you can now send multiple job arguments to Fakto
 
 The full list of configuration options are available in the [Configuration](configuration.html) documentation.
 
+## Logging
+
+By default Faktory Worker will not output any log messages but instead emit events using the [Telemetry](https://github.com/beam-telemetry/telemetry) library.
+
+To enable the built in logging you will need to attach the `FaktoryWorker.EventLogger` to Telemetry. The ideal place to do this is in your `Application.start/2` callback.
+
+```elixir
+defmodule MyApp.Application do
+  use Application
+
+  def start(_, _) do
+    FaktoryWorker.EventLogger.attach()
+
+    ...
+  end
+end
+```
+
+With this in place Faktory Worker will now output log messages for each of the events emitted.
+
+For a full list of Faktory Worker events or for details on handling these events see the [Logging](logging.html) documentation.
+
 ## Contributing
 
 We always appreciate contributions whether they are testing, reporting issues, feedback or submitting PRs. If you would like to work on Faktory Worker please follow the [Developing](#developing) section for details on how to get setup for developing and running the test suite.
