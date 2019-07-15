@@ -1,6 +1,81 @@
 defmodule FaktoryWorker.Job do
   @moduledoc """
-  todo: docs
+  The `FaktoryWorker.Job` module is used to perform jobs in the background by sending to and fetching from Faktory.
+
+  To build a worker you must `use` the job module within a module in your application.
+
+  ```elixir
+  defmodule MyApp.SomeWorker do
+    use FaktoryWorker.Job
+  end
+  ```
+
+  This will bring in all of the functionality required to perform jobs via Faktory. The `MyApp.SomeWorker` will now
+  have a `perform_async/2` function available for sending jobs to Faktory. Before this function can be called, a
+  `perform` function must be defined. This function must accept the same number of arguments that are
+  being sent to Faktory via the `perform_async/2` function.
+
+  ```elixir
+  defmodule MyApp.SomeWorker do
+    use FaktoryWorker.Job
+
+    def perform(job_arg) do
+      do_some_work(job_arg)
+    end
+  end
+  ```
+
+  With this in place it is now possible to send work to Faktory and the `MyApp.SomeWorker` will fetch the job and call
+  the `perform/1` function with the same job arguments that we sent.
+
+  ```elixir
+  > MyApp.SomeWorker.perform_async("job arg")
+  :ok
+  ```
+
+  It is also possible to send multiple arguments for a single job by passing in a list of values to the `perform_async/2`
+  function.
+
+  ```elixir
+  > MyApp.SomeWorker.perform_async(["job arg1", "job arg2"])
+  :ok
+  ```
+
+  In order for the job to be performed correctly, a `perform/2` function needs to be defined within the `MyApp.SomeWorker`
+  module.
+
+  ```elixir
+  defmodule MyApp.SomeWorker do
+    use FaktoryWorker.Job
+
+    def perform(job_arg1, job_arg2) do
+      do_some_work(job_arg1, job_arg2)
+    end
+  end
+  ```
+
+  When defining `perform` functions, they must always accept one argument for each item in the list of values passed into
+  `perform_async/2`.
+
+  ## Worker Configuration
+
+  A list of options can be specified when using the the `FaktoryWorker.Job` module. These options will be used when sending
+  jobs to faktory and will apply to all jobs sent with the `perform_async/2` function.
+
+  For a full list of configuration options see the [Worker Configuration](configuration.html#worker-configuration) documentation.
+
+  ## Overriding Worker Configuration
+
+  The `perform_async/2` function accepts a keyword list as its second argument. This list has the same options
+  available that the `FaktoryWorker.Job` module accepts. Any options passed into this function override the options
+  that have been set on the worker module.
+
+  For a full list of configuration options see the [Worker Configuration](configuration.html#worker-configuration) documentation.
+
+  ## Data Serialization
+
+  Faktory expects all values to be serialized in JSON format. FaktoryWorker uses `Jason` for serialization. This
+  means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
   alias FaktoryWorker.Random
