@@ -1,7 +1,7 @@
 defmodule FaktoryWorker.PushPipeline.Consumer do
   @moduledoc false
 
-  alias FaktoryWorker.EventDispatcher
+  alias FaktoryWorker.Telemetry
   alias FaktoryWorker.{ConnectionManager, Pool}
 
   @behaviour Broadway
@@ -26,7 +26,7 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
   end
 
   defp send_command_result({:ok, _}, job) do
-    EventDispatcher.dispatch_event(:push, :ok, job)
+    Telemetry.execute(:push, :ok, job)
   end
 
   defp send_command_result({:error, reason}, _), do: {:error, reason}

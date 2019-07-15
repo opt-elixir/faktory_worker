@@ -7,7 +7,7 @@ defmodule FaktoryWorker.PushPipeline.AcknowledgerTest do
   alias FaktoryWorker.PushPipeline.Acknowledger
 
   describe "ack/3" do
-    test "should dispatch the job not unique event" do
+    test "should execute the job not unique event" do
       event_handler_id = attach_event_handler([:push])
 
       jid = Random.job_id()

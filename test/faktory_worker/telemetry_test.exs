@@ -1,15 +1,15 @@
-defmodule FaktoryWorker.EventLoggerTest do
+defmodule FaktoryWorker.TelemetryTest do
   use ExUnit.Case
 
   import ExUnit.CaptureLog
   import FaktoryWorker.EventHandlerTestHelpers
 
   alias FaktoryWorker.Random
-  alias FaktoryWorker.EventLogger
+  alias FaktoryWorker.Telemetry
 
-  describe "attach/3" do
-    test "should attach the event logger to telemetry" do
-      EventLogger.attach()
+  describe "attach_default_handler/0" do
+    test "should attach the default FaktoryWorker telemetry handler" do
+      Telemetry.attach_default_handler()
 
       event_handlers = :telemetry.list_handlers([:faktory_worker])
 
@@ -28,7 +28,7 @@ defmodule FaktoryWorker.EventLoggerTest do
       handled_events = Enum.map(event_handlers, & &1.event_name)
 
       assert handler_name == :faktory_worker_logger
-      assert handler_function == (&FaktoryWorker.EventLogger.handle_event/4)
+      assert handler_function == (&FaktoryWorker.Telemetry.handle_event/4)
       assert Enum.member?(handled_events, [:faktory_worker, :push])
       assert Enum.member?(handled_events, [:faktory_worker, :beat])
       assert Enum.member?(handled_events, [:faktory_worker, :fetch])
@@ -36,6 +36,21 @@ defmodule FaktoryWorker.EventLoggerTest do
       assert Enum.member?(handled_events, [:faktory_worker, :failed_ack])
 
       detach_event_handler(:faktory_worker_logger)
+    end
+  end
+
+  describe "execute/3" do
+    test "should execute an event to telemetry" do
+      event_handler_id = attach_event_handler([:test_event])
+
+      Telemetry.execute(:test_event, "test outcome", %{metadata: "test"})
+
+      assert_receive {event, outcome, metadata}
+      assert event == [:faktory_worker, :test_event]
+      assert outcome == %{status: "test outcome"}
+      assert metadata == %{metadata: "test"}
+
+      detach_event_handler(event_handler_id)
     end
   end
 
@@ -51,7 +66,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :push], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :push], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -71,7 +86,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :push], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :push], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -90,7 +105,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :beat], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :beat], outcome, metadata, [])
         end)
 
       assert log_message =~ "[faktory-worker] Heartbeat Succeeded wid-#{metadata.wid}"
@@ -106,7 +121,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :beat], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :beat], outcome, metadata, [])
         end)
 
       assert log_message =~ "[faktory-worker] Heartbeat Failed wid-#{metadata.wid}"
@@ -122,7 +137,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :beat], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :beat], outcome, metadata, [])
         end)
 
       assert log_message == ""
@@ -137,7 +152,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :fetch], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :fetch], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -157,7 +172,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :ack], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :ack], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -177,7 +192,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :ack], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :ack], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -197,7 +212,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :failed_ack], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :failed_ack], outcome, metadata, [])
         end)
 
       assert log_message =~
@@ -217,7 +232,7 @@ defmodule FaktoryWorker.EventLoggerTest do
 
       log_message =
         capture_log(fn ->
-          EventLogger.handle_event([:faktory_worker, :failed_ack], outcome, metadata, [])
+          Telemetry.handle_event([:faktory_worker, :failed_ack], outcome, metadata, [])
         end)
 
       assert log_message =~

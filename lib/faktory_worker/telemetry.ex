@@ -1,26 +1,26 @@
-defmodule FaktoryWorker.EventLogger do
-  @moduledoc """
-  Handles all of the Telemetry events emitted by Faktory Worker and outputs a log message
-  when receiving an event.
-  """
+defmodule FaktoryWorker.Telemetry do
+  @moduledoc false
 
   require Logger
 
   @events [:push, :beat, :fetch, :ack, :failed_ack]
 
-  @doc """
-  Attaches the `FaktoryWorker.EventLogger` to Telemetry.
-
-  Once attached Faktory Worker will start outputting log messages using the `Logger` module for
-  each event emitted.
-
-  For a full list of events see the [Logging](logging.html) documentation.
-  """
-  @spec attach :: :ok | {:error, :already_exists}
-  def attach() do
+  @doc false
+  @spec attach_default_handler :: :ok | {:error, :already_exists}
+  def attach_default_handler() do
     events = Enum.map(@events, &[:faktory_worker, &1])
 
     :telemetry.attach_many(:faktory_worker_logger, events, &__MODULE__.handle_event/4, [])
+  end
+
+  @doc false
+  @spec execute(event :: atom(), outcome :: term(), metadata :: map()) :: :ok
+  def execute(event, outcome, metadata) do
+    :telemetry.execute(
+      [:faktory_worker, event],
+      %{status: outcome},
+      metadata
+    )
   end
 
   @doc false

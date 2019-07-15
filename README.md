@@ -98,14 +98,14 @@ The full list of configuration options are available in the [Configuration](conf
 
 By default Faktory Worker will not output any log messages but instead emit events using the [Telemetry](https://github.com/beam-telemetry/telemetry) library.
 
-To enable the built in logging you will need to attach the `FaktoryWorker.EventLogger` to Telemetry. The ideal place to do this is in your `Application.start/2` callback.
+To enable the built in logging you will need to attach the default Telemetry handler provided by FaktoryWorker. The ideal place to do this is in your `Application.start/2` callback.
 
 ```elixir
 defmodule MyApp.Application do
   use Application
 
   def start(_, _) do
-    FaktoryWorker.EventLogger.attach()
+    FaktoryWorker.attach_default_telemetry_handler()
 
     ...
   end

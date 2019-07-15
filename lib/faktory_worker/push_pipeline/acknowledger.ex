@@ -2,7 +2,7 @@ defmodule FaktoryWorker.PushPipeline.Acknowledger do
   @moduledoc false
 
   alias FaktoryWorker.Job
-  alias FaktoryWorker.EventDispatcher
+  alias FaktoryWorker.Telemetry
 
   @behaviour Broadway.Acknowledger
 
@@ -12,7 +12,7 @@ defmodule FaktoryWorker.PushPipeline.Acknowledger do
   end
 
   defp handle_failed_message(%{status: {:error, :not_unique}, data: {_, job}}) do
-    EventDispatcher.dispatch_event(:push, {:error, :not_unique}, job)
+    Telemetry.execute(:push, {:error, :not_unique}, job)
   end
 
   defp handle_failed_message(%{data: {pipeline, payload}}) do

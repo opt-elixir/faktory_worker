@@ -449,7 +449,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive :fetch
     end
 
-    test "should dispatch event, sleep, and then successfully fetch next time" do
+    test "should execute event, sleep, and then successfully fetch next time" do
       event_handler_id = attach_event_handler([:fetch])
 
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
@@ -480,7 +480,7 @@ defmodule FaktoryWorker.WorkerTest do
       detach_event_handler(event_handler_id)
     end
 
-    test "should dispatch event and schedule next fetch when worker cannot connect" do
+    test "should execute event and schedule next fetch when worker cannot connect" do
       event_handler_id = attach_event_handler([:fetch])
       start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
 
@@ -561,7 +561,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.job_timeout_ref == nil
     end
 
-    test "should dispatch an event for a successful 'ACK' was sent to faktory" do
+    test "should execute an event for a successful 'ACK' was sent to faktory" do
       event_handler_id = attach_event_handler([:ack])
       job_id = Random.string()
 
@@ -680,7 +680,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert result.job_timeout_ref == nil
     end
 
-    test "should dispatch event for a 'FAIL' was sent to faktory" do
+    test "should execute event for a 'FAIL' was sent to faktory" do
       event_handler_id = attach_event_handler([:ack])
       job_id = Random.string()
 
@@ -777,7 +777,7 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive :fetch
     end
 
-    test "should dispatch an event when there was an error sending the ack" do
+    test "should execute an event when there was an error sending the ack" do
       event_handler_id = attach_event_handler([:failed_ack])
 
       job_id = Random.string()
@@ -836,7 +836,7 @@ defmodule FaktoryWorker.WorkerTest do
       detach_event_handler(event_handler_id)
     end
 
-    test "should dispatch an event when there was an error sending the fail" do
+    test "should execute an event when there was an error sending the fail" do
       event_handler_id = attach_event_handler([:failed_ack])
 
       job_id = Random.string()

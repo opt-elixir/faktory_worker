@@ -2,7 +2,7 @@
 
 Faktory Worker uses the [Telemetry](https://github.com/beam-telemetry/telemetry) library to emit events that can be handled by either Faktory Worker or the consuming application. This provides the flexibility for the consumer of Faktory Worker to choose how logging should behave.
 
-By default Faktory Worker will not output any log messages. Logging needs to be explicitly enabled by calling the `FaktoryWorker.EventLogger.attach/0` function.
+By default Faktory Worker will not output any log messages. Logging needs to be explicitly enabled by calling the `FaktoryWorker.attach_default_telemetry_handler/0` function.
 
 Events can also be handled in the consuming application by manually attaching to Telemetry specifying the list of Faktory Worker events to handle. For instructions on creating a custom event handler see the Telemetry [README](https://github.com/beam-telemetry/telemetry/blob/master/README.md).
 

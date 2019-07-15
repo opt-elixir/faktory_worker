@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
 
   use GenServer
 
-  alias FaktoryWorker.EventDispatcher
+  alias FaktoryWorker.Telemetry
   alias FaktoryWorker.ConnectionManager
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Worker.Pool
@@ -87,7 +87,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   def terminate(_, _), do: :ok
 
   defp handle_beat_response({{:ok, %{"state" => new_beat_state}}, conn}, state) do
-    EventDispatcher.dispatch_event(:beat, :ok, %{
+    Telemetry.execute(:beat, :ok, %{
       prev_status: state.beat_state,
       wid: state.process_wid
     })
@@ -102,7 +102,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   defp handle_beat_response({{result, _}, conn}, state) when result in [:ok, :error] do
-    EventDispatcher.dispatch_event(:beat, result, %{
+    Telemetry.execute(:beat, result, %{
       prev_status: state.beat_state,
       wid: state.process_wid
     })

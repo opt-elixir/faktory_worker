@@ -233,7 +233,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       assert state.beat_state == :terminate
     end
 
-    test "should dispatch an event when the beat outcome changes" do
+    test "should execute an event when the beat outcome changes" do
       event_handler_id = attach_event_handler([:beat])
 
       process_wid = Random.process_wid()

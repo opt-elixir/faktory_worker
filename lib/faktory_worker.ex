@@ -42,4 +42,17 @@ defmodule FaktoryWorker do
       start: {Supervisor, :start_link, [children, [strategy: :one_for_one]]}
     }
   end
+
+  @doc """
+  Attaches the default telemetry handler provided by FaktoryWorker.
+
+  This function attaches the default telemetry handler provided by FaktoryWorker that
+  outputs log messages for each of the events emitted by FaktoryWorker.
+
+  For a full list of events see the [Logging](logging.html) documentation.
+  """
+  @spec attach_default_telemetry_handler :: :ok | {:error, :already_exists}
+  def attach_default_telemetry_handler() do
+    FaktoryWorker.Telemetry.attach_default_handler()
+  end
 end

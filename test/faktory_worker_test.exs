@@ -1,6 +1,8 @@
 defmodule FaktoryWorkerTest do
   use ExUnit.Case
 
+  import FaktoryWorker.EventHandlerTestHelpers
+
   describe "child_spec/0" do
     test "should return a default child_spec" do
       child_spec = FaktoryWorker.child_spec()
@@ -69,6 +71,24 @@ defmodule FaktoryWorkerTest do
                {FaktoryWorker.WorkerSupervisor,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]}
              ]
+    end
+  end
+
+  describe "attach_default_telemetry_handler/0" do
+    test "should attach the default faktory worker telemetry handler" do
+      FaktoryWorker.attach_default_telemetry_handler()
+
+      event_handlers = :telemetry.list_handlers([:faktory_worker])
+
+      [handler_name] =
+        event_handlers
+        |> Enum.filter(&(&1.id == :faktory_worker_logger))
+        |> Enum.map(& &1.id)
+        |> Enum.uniq()
+
+      assert handler_name == :faktory_worker_logger
+
+      detach_event_handler(:faktory_worker_logger)
     end
   end
 

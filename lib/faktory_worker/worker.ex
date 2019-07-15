@@ -4,7 +4,7 @@ defmodule FaktoryWorker.Worker do
   require Logger
 
   alias FaktoryWorker.ConnectionManager
-  alias FaktoryWorker.EventDispatcher
+  alias FaktoryWorker.Telemetry
   alias FaktoryWorker.ErrorFormatter
   alias FaktoryWorker.QueueManager
 
@@ -156,7 +156,7 @@ defmodule FaktoryWorker.Worker do
   def handle_fetch_response({:ok, _}, state), do: schedule_fetch(state)
 
   def handle_fetch_response({:error, reason}, state) do
-    EventDispatcher.dispatch_event(:fetch, {:error, reason}, %{wid: state.process_wid})
+    Telemetry.execute(:fetch, {:error, reason}, %{wid: state.process_wid})
     Process.send_after(self(), :fetch, state.retry_interval)
     state
   end
@@ -176,7 +176,7 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:ok, _}, ack_type, state) do
-    EventDispatcher.dispatch_event(:ack, ack_type, %{
+    Telemetry.execute(:ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
       jobtype: state.job["jobtype"]
@@ -196,7 +196,7 @@ defmodule FaktoryWorker.Worker do
   end
 
   defp handle_ack_response({:error, _}, ack_type, state) do
-    EventDispatcher.dispatch_event(:failed_ack, ack_type, %{
+    Telemetry.execute(:failed_ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
       jobtype: state.job["jobtype"]
