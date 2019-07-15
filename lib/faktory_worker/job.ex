@@ -12,10 +12,6 @@ defmodule FaktoryWorker.Job do
   # created_at
   @optional_job_fields [:queue, :custom, :retry, :reserve_for]
 
-  @default_worker_config [
-    retry: 25
-  ]
-
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
 
@@ -32,8 +28,6 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def build_payload(worker_module, job, opts) when is_list(job) do
-    opts = Keyword.merge(@default_worker_config, opts)
-
     %{
       jid: Random.job_id(),
       jobtype: job_type_for_module(worker_module),

@@ -101,14 +101,6 @@ defmodule FaktoryWorker.Job.JobTest do
       assert job.retry == 20
     end
 
-    test "should set the default retry value" do
-      data = %{hey: "there!"}
-
-      job = Job.build_payload(Test.Worker, data, [])
-
-      assert job.retry == 25
-    end
-
     test "should not be able to specify invalid data for the retry field" do
       data = %{hey: "there!"}
       opts = [retry: "20"]
