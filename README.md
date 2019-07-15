@@ -8,7 +8,7 @@ Faktory Worker documentation is available at [https://hexdocs.pm/faktory_worker]
 
 ## Getting up and running
 
-To get started with Faktory Worker first add the dependancy to your `mix.exs` file.
+To get started with Faktory Worker first add the dependency to your `mix.exs` file.
 
 ```elixir
 defp deps do
