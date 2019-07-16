@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
 
   use GenServer
 
-  alias FaktoryWorker.WorkerLogger
+  alias FaktoryWorker.Telemetry
   alias FaktoryWorker.ConnectionManager
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Worker.Pool
@@ -87,7 +87,11 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   def terminate(_, _), do: :ok
 
   defp handle_beat_response({{:ok, %{"state" => new_beat_state}}, conn}, state) do
-    WorkerLogger.log_beat(:ok, state.beat_state, state.process_wid)
+    Telemetry.execute(:beat, :ok, %{
+      prev_status: state.beat_state,
+      wid: state.process_wid
+    })
+
     new_beat_state = String.to_existing_atom(new_beat_state)
 
     if new_beat_state == :quiet do
@@ -98,7 +102,10 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   defp handle_beat_response({{result, _}, conn}, state) when result in [:ok, :error] do
-    WorkerLogger.log_beat(result, state.beat_state, state.process_wid)
+    Telemetry.execute(:beat, result, %{
+      prev_status: state.beat_state,
+      wid: state.process_wid
+    })
 
     %{state | beat_state: result, conn: conn, beat_ref: nil}
   end

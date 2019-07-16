@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
 
   import Mox
   import FaktoryWorker.ConnectionHelpers
-  import ExUnit.CaptureLog
+  import FaktoryWorker.EventHandlerTestHelpers
 
   alias FaktoryWorker.Random
   alias FaktoryWorker.ConnectionManager
@@ -233,7 +233,9 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
       assert state.beat_state == :terminate
     end
 
-    test "should log when the beat success changes" do
+    test "should execute an event when the beat outcome changes" do
+      event_handler_id = attach_event_handler([:beat])
+
       process_wid = Random.process_wid()
       beat_command = "BEAT {\"wid\":\"#{process_wid}\"}\r\n"
 
@@ -261,12 +263,17 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
         conn: ConnectionManager.new(opts)
       }
 
-      log_message =
-        capture_log(fn ->
-          HeartbeatServer.handle_info(:beat, state)
-        end)
+      HeartbeatServer.handle_info(:beat, state)
 
-      assert log_message =~ "[faktory-worker] Heartbeat Failed wid-#{process_wid}"
+      assert_receive {[:faktory_worker, :beat], outcome, metadata}
+      assert outcome == %{status: :error}
+
+      assert metadata == %{
+               prev_status: :ok,
+               wid: process_wid
+             }
+
+      detach_event_handler(event_handler_id)
     end
   end
 

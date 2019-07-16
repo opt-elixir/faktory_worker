@@ -1,13 +1,15 @@
 defmodule FaktoryWorker.PushPipeline.AcknowledgerTest do
   use ExUnit.Case
 
-  import ExUnit.CaptureLog
+  import FaktoryWorker.EventHandlerTestHelpers
 
   alias FaktoryWorker.Random
   alias FaktoryWorker.PushPipeline.Acknowledger
 
   describe "ack/3" do
-    test "should log the not unique log message" do
+    test "should execute the job not unique event" do
+      event_handler_id = attach_event_handler([:push])
+
       jid = Random.job_id()
 
       payload = %{
@@ -17,16 +19,18 @@ defmodule FaktoryWorker.PushPipeline.AcknowledgerTest do
       }
 
       failed_message = %{
-        status: {:failed, :not_unique},
+        status: {:error, :not_unique},
         data: {nil, payload}
       }
 
-      log =
-        capture_log(fn ->
-          :ok = Acknowledger.ack(nil, [], [failed_message])
-        end)
+      :ok = Acknowledger.ack(nil, [], [failed_message])
 
-      assert log =~ "NOTUNIQUE (TestWorker) jid-#{jid} #{inspect(payload.args)}"
+      assert_receive {[:faktory_worker, :push], outcome, metadata}
+      assert outcome == %{status: {:error, :not_unique}}
+
+      assert metadata == payload
+
+      detach_event_handler(event_handler_id)
     end
   end
 end
