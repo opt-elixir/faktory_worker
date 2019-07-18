@@ -70,4 +70,4 @@ The available status outcomes are.
 
 The `metadata` supplied with this event is a map containing the following fields.
 - `wid` - A worker identifier that can be used to identify which worker emitted this event.
-- `prev_status` - The `status` that was emitted on the previous `beat` event. This is useful for tracking when the status has changed between hearbeats.
+- `prev_status` - The `status` that was emitted on the previous `beat` event. This is useful for tracking when the status has changed between heartbeats.

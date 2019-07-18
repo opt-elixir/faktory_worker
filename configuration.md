@@ -40,10 +40,10 @@ Below is the full structure of available options and a definition for each one.
   - `password` (default: `nil`) - The password used to authenticate with Faktory.
   - `use_tls` (default: `false`) - A boolean flag that indicates whether Faktory Worker should connect using a TLS connection.
 
-- `pool` - A list of options to configure the pool of Faktory connections used for sending jobs to faktory.
+- `pool` - A list of options to configure the pool of Faktory connections used for sending jobs to Faktory.
 
   - `size` (default: `10`) - The number of connections to open to Faktory.
-  - `buffer_size` (default: `:infinity`) - The number of jobs that can be stored in memory whilst waiting for an available connection from the pool. Note that this defaults to `:infinity` to prevent losing jobs during high load scenarios. This could potentially lead to increased memory consumtion if there is low throughput to Faktory.
+  - `buffer_size` (default: `:infinity`) - The number of jobs that can be stored in memory whilst waiting for an available connection from the pool. Note that this defaults to `:infinity` to prevent losing jobs during high load scenarios. This could potentially lead to increased memory consumption if there is low throughput to Faktory.
 
 - `worker_pool` - A list of options to configure the Faktory workers.
   - `size` (default: `10`) - The number of worker connections to open to Faktory.
@@ -64,7 +64,7 @@ The available options are.
 
 ```elixir
 [
-  max_concurrency: pos_intger() | :infinity
+  max_concurrency: pos_integer() | :infinity
 ]
 ```
 
@@ -87,7 +87,7 @@ Below is the full structure of available options and a definition for each one.
 ```elixir
 [
   queue: String.t(),
-  retry: pos_intger(),
+  retry: pos_integer(),
   reserve_for: post_integer(),
   custom: map(),
   faktory_name: atom()
@@ -97,7 +97,7 @@ Below is the full structure of available options and a definition for each one.
 ### Option Definitions
 
 - `queue` (default: `"default"`) - The name of the queue in Faktory to send jobs to.
-- `retry` (relys on Faktory default) - The number of times the job should retry if it fails.
-- `reserve_for` (relys on Faktory default) -The number of seconds the job is reserved for in Faktory before it is considered failed.
-- `custom` (relys on Faktory default) - A map of values to be included with the job when it is sent to faktory.
-- `faktory_name` (default: `FaktoryWorker`) - The name of the faktory instance to use when sending the job to Faktory.
+- `retry` (relies on Faktory default) - The number of times the job should retry if it fails.
+- `reserve_for` (relies on Faktory default) -The number of seconds the job is reserved for in Faktory before it is considered failed.
+- `custom` (relies on Faktory default) - A map of values to be included with the job when it is sent to Faktory.
+- `faktory_name` (default: `FaktoryWorker`) - The name of the Faktory instance to use when sending the job to Faktory.
