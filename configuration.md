@@ -4,6 +4,22 @@
 
 Faktory Worker offers a range configuration options that are passed into the `FaktoryWorker` module directly when defining it as part of a supervision tree. All of these options are optional and have default values defined.
 
+Configuration can be specified in the supervision tree using a two element tuple.
+
+```elixir
+defmodule MyApp.Application do
+  use Application
+
+  def start(_, _) do
+    children = [
+      {FaktoryWorker, [name: :faktory_test]}
+    ]
+
+    ...
+  end
+end
+```
+
 Below is the full structure of available options and a definition for each one.
 
 ```elixir
