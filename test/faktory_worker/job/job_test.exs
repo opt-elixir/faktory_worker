@@ -138,6 +138,22 @@ defmodule FaktoryWorker.Job.JobTest do
 
       assert byte_size(job.jid) == 24
     end
+
+    test "should be able to specify an 'at' date/time" do
+      data = %{hey: "there!"}
+      opts = [at: DateTime.from_naive!(~N[2020-03-16 13:26:08.003], "Etc/UTC")]
+      job = Job.build_payload(Test.Worker, data, opts)
+
+      assert job.at == "2020-03-16T13:26:08.003Z"
+    end
+
+    test "should not be able to specify an invalid data type for the 'at' date/time" do
+      data = %{hey: "there!"}
+      opts = [at: "not a date/time"]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'at' has an invalid value '\"not a date/time\"'"}
+    end
   end
 
   describe "perform_async/2" do
