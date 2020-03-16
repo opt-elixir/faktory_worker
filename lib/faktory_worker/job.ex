@@ -82,10 +82,9 @@ defmodule FaktoryWorker.Job do
 
   # Look at supporting the following optional fields when pushing a job
   # priority
-  # at
   # backtrace
   # created_at
-  @optional_job_fields [:queue, :custom, :retry, :reserve_for]
+  @optional_job_fields [:queue, :custom, :retry, :reserve_for, :at]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
@@ -141,9 +140,12 @@ defmodule FaktoryWorker.Job do
           {:cont, args}
 
         value ->
-          if is_valid_field_value?(field, value),
-            do: {:cont, Map.put(args, field, value)},
-            else: {:halt, {:error, field_error_message(field, value)}}
+          if is_valid_field_value?(field, value) do
+            value = format_field_value(value)
+            {:cont, Map.put(args, field, value)}
+          else
+            {:halt, {:error, field_error_message(field, value)}}
+          end
       end
     end)
   end
@@ -152,6 +154,14 @@ defmodule FaktoryWorker.Job do
   defp is_valid_field_value?(:custom, value), do: is_map(value)
   defp is_valid_field_value?(:retry, value), do: is_integer(value)
   defp is_valid_field_value?(:reserve_for, value), do: is_integer(value) and value >= 60
+  defp is_valid_field_value?(:at, %DateTime{}), do: true
+  defp is_valid_field_value?(_, _), do: false
+
+  defp format_field_value(%DateTime{} = date_time) do
+    DateTime.to_iso8601(date_time)
+  end
+
+  defp format_field_value(value), do: value
 
   defp field_error_message(field, value) do
     "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"
