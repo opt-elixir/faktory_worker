@@ -6,17 +6,15 @@ defmodule FaktoryWorker.ErrorFormatterTest do
 
   describe "format_error/2" do
     @stacktrace [
-      {TestApp.Worker, :perform, 1, [file: 'lib/worker.ex', line: 9]},
-      {Task.Supervised, :invoke_mfa, 2, [file: 'lib/task/supervised.ex', line: 90]},
-      {Task.Supervised, :reply, 5, [file: 'lib/task/supervised.ex', line: 35]},
-      {:proc_lib, :init_p_do_apply, 3, [file: 'proc_lib.erl', line: 249]}
+      {TestApp.Worker, :raise_error, 1, [file: 'lib/worker.ex', line: 50]},
+      {TestApp.Worker, :do_work, 1, [file: 'lib/worker.ex', line: 37]},
+      {TestApp.Worker, :perform, 1, [file: 'lib/worker.ex', line: 9]}
     ]
 
     @formatted_stacktrace [
-      "lib/worker.ex:9: TestApp.Worker.perform/1",
-      "(elixir) lib/task/supervised.ex:90: Task.Supervised.invoke_mfa/2",
-      "(elixir) lib/task/supervised.ex:35: Task.Supervised.reply/5",
-      "(stdlib) proc_lib.erl:249: :proc_lib.init_p_do_apply/3"
+      "lib/worker.ex:50: TestApp.Worker.raise_error/1",
+      "lib/worker.ex:37: TestApp.Worker.do_work/1",
+      "lib/worker.ex:9: TestApp.Worker.perform/1"
     ]
 
     test "should return a formatted error for an exception" do
