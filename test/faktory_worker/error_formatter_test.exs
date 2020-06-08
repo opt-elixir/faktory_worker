@@ -29,7 +29,7 @@ defmodule FaktoryWorker.ErrorFormatterTest do
              }
     end
 
-    test "should return a formatted error for an a map with a message attribute" do
+    test "should return a formatted error for a map with a message attribute" do
       error = %{message: "It went bang!"}
 
       formatted_error = ErrorFormatter.format_error({error, @stacktrace}, 10)
@@ -41,7 +41,7 @@ defmodule FaktoryWorker.ErrorFormatterTest do
              }
     end
 
-    test "should return a formatted error for an a tuple with an atom error type" do
+    test "should return a formatted error for a tuple with an atom error type" do
       error = {:badmatch, "123"}
 
       formatted_error = ErrorFormatter.format_error({error, @stacktrace}, 10)
