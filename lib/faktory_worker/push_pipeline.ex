@@ -15,17 +15,15 @@ defmodule FaktoryWorker.PushPipeline do
     Broadway.start_link(__MODULE__,
       name: format_pipeline_name(opts[:name]),
       context: %{name: opts[:name]},
-      producers: [
-        default: [
-          module: {FaktoryWorker.PushPipeline.Producer, pool_config},
-          stages: pool_size
-        ]
+      producer: [
+        module: {FaktoryWorker.PushPipeline.Producer, pool_config},
+        concurrency: pool_size
       ],
       processors: [
-        default: [stages: pool_size]
+        default: [concurrency: pool_size]
       ],
       batchers: [
-        default: [stages: pool_size, batch_size: 1]
+        default: [concurrency: pool_size, batch_size: 1]
       ]
     )
   end
