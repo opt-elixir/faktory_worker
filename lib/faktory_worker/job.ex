@@ -127,7 +127,7 @@ defmodule FaktoryWorker.Job do
   def perform_async(pipeline_name, payload, _opts) do
     message = %Broadway.Message{
       acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-      data: {pipeline_name, payload}
+      data: {pipeline_name, payload, :push}
     }
 
     Broadway.push_messages(pipeline_name, [message])

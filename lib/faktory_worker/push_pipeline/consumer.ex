@@ -12,22 +12,22 @@ defmodule FaktoryWorker.PushPipeline.Consumer do
   def handle_message(_processor_name, message, _context), do: message
 
   @impl true
-  def handle_batch(_, [%{data: {_, job}} = message], _batch_info, %{name: name}) do
+  def handle_batch(_, [%{data: {_, job, command}} = message], _batch_info, %{name: name}) do
     result =
       name
       |> Pool.format_pool_name()
       |> :poolboy.transaction(
-        &ConnectionManager.Server.send_command(&1, {:push, job}),
+        &ConnectionManager.Server.send_command(&1, {command, job}),
         @default_timeout
       )
-      |> send_command_result(job)
+      |> send_command_result(job, command)
 
     [%{message | status: result}]
   end
 
-  defp send_command_result({:ok, _}, job) do
-    Telemetry.execute(:push, :ok, job)
+  defp send_command_result({:ok, _}, job, command) do
+    Telemetry.execute(command, :ok, job)
   end
 
-  defp send_command_result({:error, reason}, _), do: {:error, reason}
+  defp send_command_result({:error, reason}, _, _), do: {:error, reason}
 end
