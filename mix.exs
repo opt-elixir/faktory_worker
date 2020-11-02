@@ -33,7 +33,7 @@ defmodule FaktoryWorker.MixProject do
       {:jason, "~> 1.1"},
       {:poolboy, "~> 1.5"},
       {:telemetry, "~> 0.4.0"},
-      {:ex_doc, "~> 0.22.1", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.23.0", only: :dev, runtime: false},
       {:mox, "~> 1.0", only: :test}
     ]
   end
