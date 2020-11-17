@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Telemetry do
 
   require Logger
 
-  @events [:push, :beat, :fetch, :ack, :failed_ack]
+  @events [:push, :beat, :fetch, :ack, :failed_ack, :batch_new, :batch_open, :batch_commit]
 
   @doc false
   @spec attach_default_handler :: :ok | {:error, :already_exists}
