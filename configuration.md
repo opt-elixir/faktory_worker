@@ -103,6 +103,8 @@ Below is the full structure of available options and a definition for each one.
 ```elixir
 [
   queue: String.t(),
+  jobtype: String.t(),
+  at: DateTime.t(),
   retry: pos_integer(),
   reserve_for: post_integer(),
   custom: map(),
@@ -113,6 +115,8 @@ Below is the full structure of available options and a definition for each one.
 ### Option Definitions
 
 - `queue` (default: `"default"`) - The name of the queue in Faktory to send jobs to.
+- `jobtype` (default: `__MODULE__`) - The type of job to send. This is used to determine how to process a job when fetched from Faktory.
+- `at` (relies on Faktory default) - The date and time Faktory should run the job.
 - `retry` (relies on Faktory default) - The number of times the job should retry if it fails.
 - `reserve_for` (relies on Faktory default) -The number of seconds the job is reserved for in Faktory before it is considered failed.
 - `custom` (relies on Faktory default) - A map of values to be included with the job when it is sent to Faktory.

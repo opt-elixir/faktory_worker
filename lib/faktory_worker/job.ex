@@ -84,7 +84,7 @@ defmodule FaktoryWorker.Job do
   # priority
   # backtrace
   # created_at
-  @optional_job_fields [:queue, :custom, :retry, :reserve_for, :at]
+  @optional_job_fields [:jobtype, :queue, :custom, :retry, :reserve_for, :at]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
@@ -150,6 +150,7 @@ defmodule FaktoryWorker.Job do
     end)
   end
 
+  defp is_valid_field_value?(:jobtype, value), do: is_binary(value)
   defp is_valid_field_value?(:queue, value), do: is_binary(value)
   defp is_valid_field_value?(:custom, value), do: is_map(value)
   defp is_valid_field_value?(:retry, value), do: is_integer(value)
