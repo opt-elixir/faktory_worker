@@ -48,7 +48,7 @@ end
 ```
 
 This will start Faktory Worker using the default configuration. For details on how to configure Faktory Worker
-see the [FaktoryWorker](faktoryworker.html) documentation.
+see the [FaktoryWorker](https://hexdocs.pm/faktory_worker/faktory-worker.html#content) documentation.
 
 Next you can create a worker to handle job processing.
 
@@ -92,7 +92,7 @@ With this new function in place you can now send multiple job arguments to Fakto
 
 ## Configuration
 
-The full list of configuration options are available in the [Configuration](configuration.html) documentation.
+The full list of configuration options are available in the [Configuration](https://hexdocs.pm/faktory_worker/configuration.html#content) documentation.
 
 ## Logging
 
@@ -114,7 +114,7 @@ end
 
 With this in place Faktory Worker will now output log messages for each of the events emitted.
 
-For a full list of Faktory Worker events or for details on handling these events see the [Logging](logging.html) documentation.
+For a full list of Faktory Worker events or for details on handling these events see the [Logging](https://hexdocs.pm/faktory_worker/logging.html#content) documentation.
 
 ## Contributing
 
