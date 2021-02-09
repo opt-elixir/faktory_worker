@@ -18,7 +18,7 @@ defmodule FaktoryWorker.MixProject do
 
   def application do
     [
-      extra_applications: [:ssl, :logger]
+      extra_applications: [:crypto, :ssl, :logger]
     ]
   end
 
