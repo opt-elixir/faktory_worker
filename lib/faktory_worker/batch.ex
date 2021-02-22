@@ -1,102 +1,100 @@
 defmodule FaktoryWorker.Batch do
+  @moduledoc """
+  Supports Faktory Batch operations
+
+  [Batch support](https://github.com/contribsys/faktory/wiki/Ent-Batches) is a
+  Faktory Enterprise feature.
+  """
   alias FaktoryWorker.{ConnectionManager, Job, Pool}
+
+  @type bid :: String.t()
 
   @default_timeout 5000
 
   @doc """
-  Builds a batch new struct with a parent bid if specified
+  Creates a new Faktory batch
 
-  args should be formatted: [on_complete: {mod, args, opts}, on_success: {mod, args, opts}, parent_id: bid]
+  Takes the description of the batch job, a string, and the options necessary to
+  create the batch job.
 
-  ## Example
+  Returns the batch ID (`bid`) which needs to be passed in the `:custom`
+  parameters of every job that should be part of this batch as well as to commit
+  the batch.
 
-  iex> args = [on_complete: {DefaultWorker, %{hey: "you!"}, [faktory_name: faktory_name]}]
-  iex> build_payload("description", args)
-    %{
-      complete: %{
-        args: [%{hey: "you!"}],
-        jid: "6ce7e595b572bd142abfb607",
-        jobtype: "DefaultWorker"
-      },
-      description: "description"
-    }
+  ## Opts
 
+  Batch jobs must define a success or complete callback (or both). These
+  callbacks are passed as tuples to the `:on_success` and `:on_complete` opts.
+  They are defined as a tuple consisting of `{mod, args, opts}` where `mod` is a
+  module with a `perform` function that corresponds in arity to the length of `args`.
+
+  Any `opts` that can be passed to `perform_async/2` can be provided as `opts`
+  to the callback except for `:faktory_worker`.
+
+  If neither callback is provided, an error will be raised.
+
+  ### `:on_success`
+
+  See above.
+
+  ### `:on_complete`
+
+  See above.
+
+  ### `:parent_bid`
+
+  The parent batch ID--only used if you are creating a child batch.
+
+  ### `:faktory_worker`
+
+  The name of the `FaktoryWorker` instance (determines which connection pool
+  will be used).
   """
-  def build_payload(
-        description,
-        args
-      ) do
-    success = Keyword.get(args, :on_success, nil)
-    complete = Keyword.get(args, :on_complete, nil)
-    bid = Keyword.get(args, :parent_id, nil)
+  @spec new!(String.t(), Keyword.t()) :: {:ok, bid()}
+  def new!(description, opts \\ []) do
+    success = Keyword.get(opts, :on_success)
+    complete = Keyword.get(opts, :on_complete)
+    bid = Keyword.get(opts, :parent_id)
 
-    %{description: description}
-    |> maybe_put_parent_id(bid)
-    |> maybe_put_callback(:success, success)
-    |> maybe_put_callback(:complete, complete)
-    |> validate()
-  end
+    payload =
+      %{description: description}
+      |> maybe_put_parent_id(bid)
+      |> maybe_put_callback(:success, success)
+      |> maybe_put_callback(:complete, complete)
+      |> validate!()
 
-  defp maybe_put_parent_id(payload, bid) do
-    case bid do
-      nil ->
-        payload
-
-      bid ->
-        payload
-        |> Map.put_new(:parent_bid, bid)
-    end
-  end
-
-  defp maybe_put_callback(payload, callback_type, callback) do
-    case callback do
-      nil ->
-        payload
-
-      callback ->
-        {callback_worker_module, callback_job, callback_options} = callback
-        callback_job = Job.build_payload(callback_worker_module, callback_job, callback_options)
-
-        payload
-        |> Map.put_new(callback_type, callback_job)
-    end
-  end
-
-  defp validate(payload) do
-    success = payload |> Map.get(:success, nil)
-    complete = payload |> Map.get(:complete, nil)
-
-    case {success, complete} do
-      {nil, nil} ->
-        {:error, "Success or Complete must be defined"}
-
-      {_, _} ->
-        {:ok, payload}
-    end
+    send_command(opts, {:batch_new, payload})
   end
 
   @doc """
-  Issues a batch new request to the Faktory instance specified in the options
+  Commits the batch identified by `bid`
+
+  Faktory will begin scheduling jobs that are part of the batch before the batch
+  is committed, but
   """
-  def new(payload, opts) do
-    opts
-    |> send_command({:batch_new, payload})
+  def commit(bid, opts \\ []) do
+    send_command(opts, {:batch_commit, bid})
   end
 
   @doc """
-  Issues a batch commit request to the Faktory instance specified in the options
+  Opens the batch identified by `bid`
+
+  An existing batch needs to be re-opened in order to add more jobs to it or to
+  add a child batch.
+
+  After opening the batch, it must be committed again using `commit/2`.
   """
-  def commit(bid, opts) do
-    opts
-    |> send_command({:batch_commit, bid})
+  def open(bid, opts \\ []) do
+    send_command(opts, {:batch_open, bid})
   end
 
   @doc """
-  Issues a batch open request to the Faktory instance specified in the options
+  Gets the status of a batch
+
+  Returns a map representing the status
   """
-  def open(bid, opts) do
-    opts
-    |> send_command({:batch_open, bid})
+  def status(bid, opts \\ []) do
+    send_command(opts, {:batch_status, bid})
   end
 
   defp send_command(opts, command) do
@@ -107,5 +105,29 @@ defmodule FaktoryWorker.Batch do
       &ConnectionManager.Server.send_command(&1, command),
       @default_timeout
     )
+  end
+
+  defp maybe_put_parent_id(payload, nil), do: payload
+  defp maybe_put_parent_id(payload, bid), do: Map.put_new(payload, :parent_bid, bid)
+
+  defp maybe_put_callback(payload, _type, nil), do: payload
+
+  defp maybe_put_callback(payload, type, {mod, job, opts}) do
+    job_payload = Job.build_payload(mod, job, opts)
+
+    Map.put_new(payload, type, job_payload)
+  end
+
+  defp validate!(payload) do
+    success = Map.get(payload, :success)
+    complete = Map.get(payload, :complete)
+
+    case {success, complete} do
+      {nil, nil} ->
+        raise("Faktory batch jobs must declare a success or complete callback")
+
+      {_, _} ->
+        payload
+    end
   end
 end

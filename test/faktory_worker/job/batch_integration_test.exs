@@ -1,115 +1,99 @@
 defmodule FaktoryWorker.BatchIntegrationTest do
   use ExUnit.Case
+  @moduletag :enterprise
 
   import FaktoryWorker.FaktoryTestHelpers
 
-  alias FaktoryWorker.{Job, Random, DefaultWorker, Batch}
-  alias FaktoryWorker.FaktoryTestHelpers
+  alias FaktoryWorker.{Random, DefaultWorker, Batch}
+
   setup :flush_faktory!
 
-  describe "new/2" do
-    test "should send a new batch to faktory" do
-      faktory_name = :"Test_#{Random.string()}"
+  setup do
+    faktory_name = :"Test_#{Random.string()}"
 
-      start_supervised!(
-        {FaktoryWorker, name: faktory_name, pool: [size: 1], worker_pool: [disable_fetch: true]}
-      )
+    faktory_opts = [
+      name: faktory_name,
+      pool: [size: 1],
+      worker_pool: [disable_fetch: true]
+    ]
 
-      opts = [faktory_name: faktory_name]
+    start_supervised!({FaktoryWorker, faktory_opts})
 
-      args = [
-        on_complete: {DefaultWorker, %{hey: "you!"}, opts},
-        on_success: {DefaultWorker, %{hey: "me!"}, opts}
+    {:ok, faktory_name: faktory_name}
+  end
+
+  describe "new!/2" do
+    test "creates a new batch", %{faktory_name: faktory_name} do
+      opts = [
+        on_complete: {DefaultWorker, ["complete"], []},
+        faktory_name: faktory_name
       ]
 
-      batch =
-        Batch.build_payload(
-          "tester",
-          args
-        )
+      {:ok, bid} = Batch.new!("Test batch", opts)
 
-      {:ok, bid} = Batch.new(batch, opts)
+      job_opts = [
+        faktory_name: faktory_name,
+        custom: %{"bid" => bid}
+      ]
 
-      send_job_to_faktory(%{hey: "there!", custom: %{bid: bid}}, opts)
+      DefaultWorker.perform_async(["1"], job_opts)
+      DefaultWorker.perform_async(["2"], job_opts)
+
+      Process.sleep(1000)
 
       Batch.commit(bid, opts)
 
-      {:ok, _} = FaktoryTestHelpers.get_batch_status(bid)
+      {:ok, status} = Batch.status(bid, faktory_name: faktory_name)
 
-      :ok = stop_supervised(faktory_name)
+      assert status["pending"] == 2
+      assert status["total"] == 2
+    end
+
+    test "raises if no callbacks are defined", %{faktory_name: faktory_name} do
+      opts = [faktory_name: faktory_name]
+
+      message = "Faktory batch jobs must declare a success or complete callback"
+
+      assert_raise RuntimeError, message, fn ->
+        Batch.new!("Test batch", opts)
+      end
     end
   end
 
   describe "open/2" do
-    test "should open a batch in faktory" do
-      faktory_name = :"Test_#{Random.string()}"
-
-      start_supervised!(
-        {FaktoryWorker, name: faktory_name, pool: [size: 1], worker_pool: [disable_fetch: true]}
-      )
-
-      opts = [faktory_name: faktory_name]
-
-      args = [
-        on_complete: {DefaultWorker, %{hey: "you!"}, opts},
-        on_success: {DefaultWorker, %{hey: "me!"}, opts}
+    test "allows opening a batch and adding new jobs", %{faktory_name: faktory_name} do
+      opts = [
+        on_complete: {DefaultWorker, ["complete"], []},
+        faktory_name: faktory_name
       ]
 
-      batch =
-        Batch.build_payload(
-          "tester",
-          args
-        )
+      {:ok, bid} = Batch.new!("Test batch", opts)
 
-      # new batch
-      {:ok, bid} = Batch.new(batch, opts)
-      # job in the batch
-      send_job_to_faktory(%{hey: "there!", custom: %{bid: bid}}, opts)
-      # commit batch
+      job_opts = [
+        faktory_name: faktory_name,
+        custom: %{"bid" => bid}
+      ]
+
+      DefaultWorker.perform_async(["1"], job_opts)
+      DefaultWorker.perform_async(["2"], job_opts)
+
+      Process.sleep(1000)
+
       Batch.commit(bid, opts)
 
-      # reopen batch
       Batch.open(bid, opts)
-      # job in the batch
-      send_job_to_faktory(%{hey: "in the batch!", custom: %{bid: bid}}, opts)
 
-      # child args
-      child_args = [
-        on_complete: {DefaultWorker, %{hey: "child you!"}, opts},
-        on_success: {DefaultWorker, %{hey: "child me!"}, opts},
-        parent_id: bid
-      ]
+      DefaultWorker.perform_async(["3"], job_opts)
+      DefaultWorker.perform_async(["4"], job_opts)
 
-      # child batch
-      child_batch =
-        Batch.build_payload(
-          "tester",
-          child_args
-        )
+      Process.sleep(1000)
 
-      {:ok, child_bid} = Batch.new(child_batch, opts)
-      # child batch job
-      send_job_to_faktory(%{hey: "child batch job!", custom: %{bid: child_bid}}, opts)
-
-      # commit child batch
-      Batch.commit(child_bid, opts)
-      # commit batch
       Batch.commit(bid, opts)
 
-      {:ok, batch_status} = FaktoryTestHelpers.get_batch_status(bid)
+      {:ok, status} = Batch.status(bid, faktory_name: faktory_name)
 
-      {:ok, child_batch_status} = FaktoryTestHelpers.get_batch_status(child_bid)
-
-      assert child_batch_status["parent_bid"] == bid
-      assert batch_status["bid"] == bid
-
-      :ok = stop_supervised(faktory_name)
+      assert status["pending"] == 4
+      assert status["total"] == 4
     end
-  end
-
-  defp send_job_to_faktory(job_args, opts) do
-    job = Job.build_payload(DefaultWorker, job_args, opts)
-
-    Job.perform_async(job, opts)
   end
 end
