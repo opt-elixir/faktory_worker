@@ -66,7 +66,7 @@ defmodule FaktoryWorker.Batch do
       |> maybe_put_callback(:complete, complete)
       |> validate!()
 
-    send_command(opts, {:batch_new, payload})
+    send_command({:batch_new, payload}, opts)
   end
 
   @doc """
@@ -76,7 +76,7 @@ defmodule FaktoryWorker.Batch do
   is committed, but
   """
   def commit(bid, opts \\ []) do
-    send_command(opts, {:batch_commit, bid})
+    send_command({:batch_commit, bid}, opts)
   end
 
   @doc """
@@ -88,7 +88,7 @@ defmodule FaktoryWorker.Batch do
   After opening the batch, it must be committed again using `commit/2`.
   """
   def open(bid, opts \\ []) do
-    send_command(opts, {:batch_open, bid})
+    send_command({:batch_open, bid}, opts)
   end
 
   @doc """
@@ -97,10 +97,10 @@ defmodule FaktoryWorker.Batch do
   Returns a map representing the status
   """
   def status(bid, opts \\ []) do
-    send_command(opts, {:batch_status, bid})
+    send_command({:batch_status, bid}, opts)
   end
 
-  defp send_command(opts, command) do
+  defp send_command(command, opts) do
     opts
     |> Keyword.get(:faktory_name, FaktoryWorker)
     |> Pool.format_pool_name()
