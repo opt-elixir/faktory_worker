@@ -4,6 +4,9 @@ defmodule FaktoryWorker.Batch do
 
   [Batch support](https://github.com/contribsys/faktory/wiki/Ent-Batches) is a
   Faktory Enterprise feature.
+
+  Jobs pushed as part of a batch _must_ be pushed synchronously. This can be
+  done using the `skip_pipeline: true` option when calling `perform_async/2`.
   """
   alias FaktoryWorker.{ConnectionManager, Job, Pool}
 

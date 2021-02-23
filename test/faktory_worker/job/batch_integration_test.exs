@@ -33,13 +33,12 @@ defmodule FaktoryWorker.BatchIntegrationTest do
 
       job_opts = [
         faktory_name: faktory_name,
-        custom: %{"bid" => bid}
+        custom: %{"bid" => bid},
+        skip_pipeline: true
       ]
 
       DefaultWorker.perform_async(["1"], job_opts)
       DefaultWorker.perform_async(["2"], job_opts)
-
-      Process.sleep(1000)
 
       Batch.commit(bid, opts)
 
@@ -71,13 +70,12 @@ defmodule FaktoryWorker.BatchIntegrationTest do
 
       job_opts = [
         faktory_name: faktory_name,
-        custom: %{"bid" => bid}
+        custom: %{"bid" => bid},
+        skip_pipeline: true
       ]
 
       DefaultWorker.perform_async(["1"], job_opts)
       DefaultWorker.perform_async(["2"], job_opts)
-
-      Process.sleep(1000)
 
       Batch.commit(bid, opts)
 
@@ -85,8 +83,6 @@ defmodule FaktoryWorker.BatchIntegrationTest do
 
       DefaultWorker.perform_async(["3"], job_opts)
       DefaultWorker.perform_async(["4"], job_opts)
-
-      Process.sleep(1000)
 
       Batch.commit(bid, opts)
 

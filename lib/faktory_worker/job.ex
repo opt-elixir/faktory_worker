@@ -57,6 +57,16 @@ defmodule FaktoryWorker.Job do
   When defining `perform` functions, they must always accept one argument for each item in the list of values passed into
   `perform_async/2`.
 
+  ## Synchronous job pushing
+
+  By default, jobs are pushed asynchronously to the Faktory server. To ensure a
+  job has been successfully submitted before continuing, jobs can be pushed
+  synchronously instead. To do this, pass the `:skip_pipeline` option with the
+  value of `true` to `perform_async/2`.
+
+  Synchronous pushing is required in certain situations to guarantee ordering,
+  such as when using the Faktory Enterprise batching feature.
+
   ## Worker Configuration
 
   A list of options can be specified when using the the `FaktoryWorker.Job` module. These options will be used when sending
@@ -78,13 +88,15 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.Random
+  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
   # backtrace
   # created_at
   @optional_job_fields [:jobtype, :queue, :custom, :retry, :reserve_for, :at]
+
+  @default_push_timeout 5000
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
@@ -116,9 +128,17 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(payload, opts) do
-    opts
-    |> push_pipeline_name()
-    |> perform_async(payload, opts)
+    case Keyword.get(opts, :skip_pipeline, false) do
+      false ->
+        opts
+        |> push_pipeline_name()
+        |> perform_async(payload, opts)
+
+      true ->
+        opts
+        |> faktory_name()
+        |> push(payload)
+    end
   end
 
   @doc false
@@ -131,6 +151,17 @@ defmodule FaktoryWorker.Job do
     }
 
     Broadway.push_messages(pipeline_name, [message])
+  end
+
+  @doc false
+  def push(faktory_name, job) do
+    faktory_name
+    |> Pool.format_pool_name()
+    |> :poolboy.transaction(
+      &ConnectionManager.Server.send_command(&1, {:push, job}),
+      @default_push_timeout
+    )
+    |> handle_push_result(job)
   end
 
   defp append_optional_fields(args, opts) do
@@ -170,8 +201,22 @@ defmodule FaktoryWorker.Job do
 
   defp push_pipeline_name(opts) do
     opts
-    |> Keyword.get(:faktory_name, FaktoryWorker)
+    |> faktory_name()
     |> FaktoryWorker.PushPipeline.format_pipeline_name()
+  end
+
+  defp faktory_name(opts) do
+    Keyword.get(opts, :faktory_name, FaktoryWorker)
+  end
+
+  defp handle_push_result({:ok, _}, job) do
+    Telemetry.execute(:push, :ok, job)
+
+    {:ok, job}
+  end
+
+  defp handle_push_result({:error, reason}, _) do
+    {:error, reason}
   end
 
   defp job_type_for_module(module) do
