@@ -3,10 +3,55 @@ defmodule FaktoryWorker.Batch do
   Supports Faktory Batch operations
 
   [Batch support](https://github.com/contribsys/faktory/wiki/Ent-Batches) is a
-  Faktory Enterprise feature.
+  Faktory Enterprise feature. It allows jobs to pushed as part of a batch. When
+  all jobs in a batch have completed, Faktory will queue a callback job. This
+  allows building complex job workflows with dependencies.
 
   Jobs pushed as part of a batch _must_ be pushed synchronously. This can be
-  done using the `skip_pipeline: true` option when calling `perform_async/2`.
+  done using the `skip_pipeline: true` option when calling `perform_async/2`. If
+  a job isn't pushed synchronously, you may encounter a race condition where the
+  batch is committed before all jobs have been pushed.
+
+  ## Creating a batch
+
+  A batch is created using `new!/2` and must provide a description and declare
+  one of the success or complete callbacks. The `new!/2` function returns the
+  batch ID (or `bid`) which identifies the batch for future commands.
+
+  Once created, jobs can be pushed to the batch by providing the `bid` in the
+  `custom` payload. These jobs must be pushed synchronously.
+
+  ```
+  alias FaktoryWorker.Batch
+
+  {:ok, bid} = Batch.new!("Complex work batch", on_success: {MyApp.EmailReportJob, [], []})
+  MyApp.Job.perform_async([1, 2], custom: %{"bid" => bid}, skip_pipeline: true)
+  MyApp.Job.perform_async([3, 4], custom: %{"bid" => bid}, skip_pipeline: true)
+  MyApp.Job.perform_async([5, 6], custom: %{"bid" => bid}, skip_pipeline: true)
+  Batch.commit(bid)
+  ```
+
+  ## Opening a batch
+
+  In order to open a batch, you must know the batch ID. Since FaktoryWorker
+  doesn't currently pass the job itself as a parameter to `perform` functions,
+  you must explicitly pass it as an argument in order to open the batch as part
+  of a job.
+
+  ```
+  defmodule MyApp.Job do
+    use FaktoryWorker.Job
+
+    def perform(arg1, arg2, bid) do
+      Batch.open(bid)
+
+      MyApp.OtherJob.perform_async([1, 2], custom: %{"bid" => bid}, skip_pipeline: true)
+
+      Batch.commit(bid)
+    end
+  end
+  ```
+
   """
   alias FaktoryWorker.{ConnectionManager, Job, Pool}
 
