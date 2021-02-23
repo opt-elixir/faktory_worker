@@ -22,14 +22,15 @@ defmodule FaktoryWorker.BatchIntegrationTest do
     {:ok, faktory_name: faktory_name}
   end
 
-  describe "new!/2" do
+  describe "new!/1" do
     test "creates a new batch", %{faktory_name: faktory_name} do
       opts = [
+        description: "Test batch",
         on_complete: {DefaultWorker, ["complete"], []},
         faktory_name: faktory_name
       ]
 
-      {:ok, bid} = Batch.new!("Test batch", opts)
+      {:ok, bid} = Batch.new!(opts)
 
       job_opts = [
         faktory_name: faktory_name,
@@ -54,7 +55,7 @@ defmodule FaktoryWorker.BatchIntegrationTest do
       message = "Faktory batch jobs must declare a success or complete callback"
 
       assert_raise RuntimeError, message, fn ->
-        Batch.new!("Test batch", opts)
+        Batch.new!(opts)
       end
     end
   end
@@ -62,11 +63,12 @@ defmodule FaktoryWorker.BatchIntegrationTest do
   describe "open/2" do
     test "allows opening a batch and adding new jobs", %{faktory_name: faktory_name} do
       opts = [
+        description: "Test batch",
         on_complete: {DefaultWorker, ["complete"], []},
         faktory_name: faktory_name
       ]
 
-      {:ok, bid} = Batch.new!("Test batch", opts)
+      {:ok, bid} = Batch.new!(opts)
 
       job_opts = [
         faktory_name: faktory_name,

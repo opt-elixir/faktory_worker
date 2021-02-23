@@ -14,8 +14,8 @@ defmodule FaktoryWorker.Batch do
 
   ## Creating a batch
 
-  A batch is created using `new!/2` and must provide a description and declare
-  one of the success or complete callbacks. The `new!/2` function returns the
+  A batch is created using `new!/1` and must provide a description and declare
+  one of the success or complete callbacks. The `new!/1` function returns the
   batch ID (or `bid`) which identifies the batch for future commands.
 
   Once created, jobs can be pushed to the batch by providing the `bid` in the
@@ -24,7 +24,7 @@ defmodule FaktoryWorker.Batch do
   ```
   alias FaktoryWorker.Batch
 
-  {:ok, bid} = Batch.new!("Complex work batch", on_success: {MyApp.EmailReportJob, [], []})
+  {:ok, bid} = Batch.new!(on_success: {MyApp.EmailReportJob, [], []})
   MyApp.Job.perform_async([1, 2], custom: %{"bid" => bid}, skip_pipeline: true)
   MyApp.Job.perform_async([3, 4], custom: %{"bid" => bid}, skip_pipeline: true)
   MyApp.Job.perform_async([5, 6], custom: %{"bid" => bid}, skip_pipeline: true)
@@ -62,9 +62,6 @@ defmodule FaktoryWorker.Batch do
   @doc """
   Creates a new Faktory batch
 
-  Takes the description of the batch job, a string, and the options necessary to
-  create the batch job.
-
   Returns the batch ID (`bid`) which needs to be passed in the `:custom`
   parameters of every job that should be part of this batch as well as to commit
   the batch.
@@ -89,6 +86,11 @@ defmodule FaktoryWorker.Batch do
 
   See above.
 
+  ### `:description`
+
+  The description, if provided, is shown in Faktory's Web UI on the batch
+  listing tab.
+
   ### `:parent_bid`
 
   The parent batch ID--only used if you are creating a child batch.
@@ -98,14 +100,16 @@ defmodule FaktoryWorker.Batch do
   The name of the `FaktoryWorker` instance (determines which connection pool
   will be used).
   """
-  @spec new!(String.t(), Keyword.t()) :: {:ok, bid()}
-  def new!(description, opts \\ []) do
+  @spec new!(Keyword.t()) :: {:ok, bid()} | {:error, any()}
+  def new!(opts \\ []) do
     success = Keyword.get(opts, :on_success)
     complete = Keyword.get(opts, :on_complete)
     bid = Keyword.get(opts, :parent_id)
+    description = Keyword.get(opts, :description)
 
     payload =
-      %{description: description}
+      %{}
+      |> maybe_put_description(description)
       |> maybe_put_parent_id(bid)
       |> maybe_put_callback(:success, success)
       |> maybe_put_callback(:complete, complete)
@@ -154,6 +158,11 @@ defmodule FaktoryWorker.Batch do
       @default_timeout
     )
   end
+
+  defp maybe_put_description(payload, nil), do: payload
+
+  defp maybe_put_description(payload, description),
+    do: Map.put_new(payload, :description, description)
 
   defp maybe_put_parent_id(payload, nil), do: payload
   defp maybe_put_parent_id(payload, bid), do: Map.put_new(payload, :parent_bid, bid)
