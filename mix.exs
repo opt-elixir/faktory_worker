@@ -50,8 +50,9 @@ defmodule FaktoryWorker.MixProject do
   defp doc_extras() do
     [
       "README.md": [filename: "faktory-worker"],
-      "configuration.md": [filename: "configuration", title: "Configuration"],
-      "logging.md": [filename: "logging", title: "Logging"]
+      "configuration.md": [filename: "docs/configuration", title: "Configuration"],
+      "logging.md": [filename: "docs/logging", title: "Logging"],
+      "testing.md": [filename: "docs/testing", title: "Testing"]
     ]
   end
 
