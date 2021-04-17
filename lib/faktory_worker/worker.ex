@@ -123,7 +123,6 @@ defmodule FaktoryWorker.Worker do
     job_module =
       job["jobtype"]
       |> String.split(".")
-      |> Enum.map(&String.to_atom/1)
       |> Module.safe_concat()
 
     job_ref =
