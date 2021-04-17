@@ -7,6 +7,7 @@ defmodule FaktoryWorker.Worker do
   alias FaktoryWorker.Telemetry
   alias FaktoryWorker.ErrorFormatter
   alias FaktoryWorker.QueueManager
+  alias FaktoryWorker.JobSupervisor
 
   @type t :: %__MODULE__{}
 
@@ -28,6 +29,9 @@ defmodule FaktoryWorker.Worker do
     :job_timeout_ref,
     :retry_interval
   ]
+
+  @spec faktory_default_reserve_for :: pos_integer()
+  def faktory_default_reserve_for, do: @faktory_default_reserve_for
 
   @spec new(opts :: keyword()) :: __MODULE__.t()
   def new(opts) do
@@ -123,24 +127,12 @@ defmodule FaktoryWorker.Worker do
     job_module =
       job["jobtype"]
       |> String.split(".")
-      |> Enum.map(&String.to_atom/1)
       |> Module.safe_concat()
 
-    job_ref =
-      Task.Supervisor.async_nolink(
-        job_supervisor,
-        job_module,
-        :perform,
-        job["args"],
-        shutdown: :brutal_kill
-      )
+    job_ref = JobSupervisor.async_nolink(job_supervisor, job_module, job["args"])
 
     reserve_for_seconds = Map.get(job, "reserve_for", @faktory_default_reserve_for)
-
-    # set a timeout for the job process of the configured reserve_for
-    # time minus 20 seconds to ensure the job is stopped before faktory
-    # can expire and retry it on the server
-    timeout_duration = (reserve_for_seconds - 20) * 1000
+    timeout_duration = reserve_timeout_duration(reserve_for_seconds)
     timeout_ref = Process.send_after(self(), :job_timeout, timeout_duration)
 
     %{
@@ -166,6 +158,16 @@ defmodule FaktoryWorker.Worker do
 
   def checkin_queues(%{queues: queues} = state) do
     QueueManager.checkin_queues(queue_manager_name(state), queues)
+  end
+
+  @doc """
+  Timeout duration (in ms) for the job process of the configured `reserve_for`
+  time minus 20 seconds to ensure the job is stopped before Faktory can expire
+  and retry it on the server.
+  """
+  @spec reserve_timeout_duration(pos_integer()) :: pos_integer()
+  def reserve_timeout_duration(reserve_for_seconds) do
+    (reserve_for_seconds - 20) * 1_000
   end
 
   defp schedule_fetch(%{disable_fetch: true} = state), do: state

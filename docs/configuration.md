@@ -106,7 +106,7 @@ Below is the full structure of available options and a definition for each one.
   jobtype: String.t(),
   at: DateTime.t(),
   retry: pos_integer(),
-  reserve_for: post_integer(),
+  reserve_for: pos_integer(),
   custom: map(),
   faktory_name: atom()
 ]
