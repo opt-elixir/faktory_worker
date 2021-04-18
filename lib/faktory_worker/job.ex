@@ -126,7 +126,6 @@ defmodule FaktoryWorker.Job do
 
   def perform_async(pipeline_name, payload, opts) do
     if Sandbox.active?() do
-      # TODO: avoid atom -> string -> atom conversion
       Sandbox.enqueue_job(
         String.to_existing_atom("Elixir." <> payload.jobtype),
         payload.args,
