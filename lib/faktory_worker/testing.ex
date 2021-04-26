@@ -7,7 +7,7 @@ defmodule FaktoryWorker.Testing do
   See [Sandbox Testing](sandbox-testing.html) to read more.
   """
 
-  import ExUnit.Assertions, only: [assert: 2, refute: 2]
+  import ExUnit.Assertions, only: [assert: 2]
 
   alias FaktoryWorker.Sandbox
   alias FaktoryWorker.JobSupervisor
@@ -27,9 +27,28 @@ defmodule FaktoryWorker.Testing do
 
   Note that `ExUnit.CaptureLog`, `ExUnit.CaptureIO`, and friends will
   **not** work since the job process is not linked to the caller.
+
+  ## Examples
+
+      # arguments are optional for 0-arity jobs
+      perform_job(MyJob)
+
+      # single arguments may be passed directly
+      perform_job(MyJob, 123)
+
+      # multiple arguments in a list
+      perform_job(MyJob, ["foo", "bar"])
+
+      # you can pass options as well
+      perform_job(MyJob, ["arg1"], reserve_for: 1_500)
+
+      # if you need to pass options to a 0-arity job, you must
+      # pass an empty list for arguments
+      perform_job(MyJob, [], reserve_for: 1_500)
+
   """
   @spec perform_job(module(), term() | [term()], Keyword.t()) :: Macro.t()
-  defmacro perform_job(worker_mod, arg_or_args, opts \\ []) do
+  defmacro perform_job(worker_mod, arg_or_args \\ [], opts \\ []) do
     quote do
       alias FaktoryWorker.Worker
       alias FaktoryWorker.Sandbox
@@ -75,14 +94,23 @@ defmodule FaktoryWorker.Testing do
   This will reset the history for _all_ job modules; if you need finer-grained
   control over which job modules are reset (generally you shouldn't), use
   `FaktoryWorker.Sandbox.reset/1` instead.
+
+  If you don't need to perform any other setup, you can use the atom shorthand
+
+      setup :reset_queues
+
   """
   @spec reset_queues :: :ok
-  def reset_queues, do: Sandbox.reset()
+  def reset_queues(_context \\ %{}), do: Sandbox.reset()
 
   @doc """
   Assert that a job was enqueued for the given job module, optionally matching
-  a set of argument/option filters. If multiple jobs were recorded that match,
-  the assertion will still pass, so try to be as specific as possible.
+  a set of argument/option filters. By default, this assertion will fail if more
+  than one matching job is found. If you want to assert that multiple matching
+  jobs are enqueued, you can use the `:count` option. If you want the assertion
+  to pass if _at least_ one matching job is enqueued, pass `count: :any` (this
+  should generally be discouraged in favor of a specific count, to help catch
+  accidental duplicate enqueues).
 
   ## Examples
 
@@ -91,9 +119,7 @@ defmodule FaktoryWorker.Testing do
 
         import FaktoryWorker.Testing
 
-        setup do
-          reset_queues()
-        end
+        setup :reset_queues
 
         test "enqueues" do
           MyApp.Job.perform_async("argument")
@@ -106,6 +132,9 @@ defmodule FaktoryWorker.Testing do
 
           # assert on multiple arguments (order matters)
           assert_enqueued MyApp.Job, args: ["foo", "bar"]
+
+          # assert that two matching jobs were enqueued
+          assert_enqueued MyApp.Job, args: ["foo", "bar"], count: 2
 
           # assert on serializable arguments
           assert_enqueued MyApp.Job, args: [%MyApp.User{...}]
@@ -122,20 +151,30 @@ defmodule FaktoryWorker.Testing do
   @spec assert_enqueued(module(), args: list(), opts: Keyword.t()) :: true
   def assert_enqueued(worker_mod, filters \\ []) do
     validate_filters!(filters)
+    desired_count = filters[:count] || 1
 
-    err_message = """
-    Expected a job to be enqueued matching:
+    err_message = fn reason ->
+      """
+      Expected #{describe_count(desired_count)} job(s) to be enqueued matching:
 
-    #{describe_filters(worker_mod, filters)}
+      #{describe_filters(worker_mod, filters)}
 
-    but didn't find one. These jobs were enqueued for #{inspect(worker_mod)}:
+      but #{reason}. These jobs were enqueued for #{inspect(worker_mod)}:
 
-    #{describe_available_jobs(worker_mod)}
-    """
+      #{describe_available_jobs(worker_mod)}
+      """
+    end
 
-    refute worker_mod |> Sandbox.find_jobs(filters) |> Enum.empty?(), err_message
+    matching_job_count = worker_mod |> Sandbox.find_jobs(filters) |> Enum.count()
 
-    true
+    case desired_count do
+      :any ->
+        assert matching_job_count > 0, err_message.("didn't find any")
+
+      _ ->
+        assert matching_job_count == desired_count,
+               err_message.("found #{matching_job_count} instead")
+    end
   end
 
   @doc """
@@ -149,9 +188,7 @@ defmodule FaktoryWorker.Testing do
 
         import FaktoryWorker.Testing
 
-        setup do
-          reset_queues()
-        end
+        setup :reset_queues
 
         test "doesn't enqueue" do
           # refute that _any_ job was enqueued for this module
@@ -203,8 +240,11 @@ defmodule FaktoryWorker.Testing do
     if not Keyword.keyword?(filters) do
       raise """
       assert_enqueued/refute_enqueued accept a keyword list of filters as
-      the second argument, containing either a list of `:args` and/or a
-      keyword list of `:opts`
+      the second argument, containing zero or more of the following keys:
+
+        - :args
+        - :opts
+        - :count
 
       received #{inspect(filters)}
       """
@@ -244,12 +284,26 @@ defmodule FaktoryWorker.Testing do
     assert Keyword.keyword?(opt_filter), err_message
   end
 
+  defp validate_filter!({:count, :any}), do: true
+
+  defp validate_filter!({:count, 0}) do
+    raise """
+    Expected count to be greater than 0. If you want to assert that
+    _no matching jobs_ are enqueued, use `refute_enqueued` instead.
+    """
+  end
+
+  defp validate_filter!({:count, count}) do
+    assert count > 0, "Expected count to be greater than zero, but got #{count}"
+  end
+
   defp validate_filter!({key, _filter}) do
     raise """
     Received unexpected job filter #{inspect(key)}. Valid filters include:
 
       - :args
       - :opts
+      - :count
 
     If you were trying to filter by an option, make sure to nest the filter
     under the `:opts` key, like so:
@@ -285,4 +339,9 @@ defmodule FaktoryWorker.Testing do
   defp describe_job({job, index}) do
     "  #{index}: ##{inspect(job.worker)}<args: #{inspect(job.args)}, opts: #{inspect(job.opts)}>"
   end
+
+  @spec describe_count(pos_integer() | :any | nil) :: String.t()
+  defp describe_count(nil), do: "exactly 1"
+  defp describe_count(:any), do: "at least one"
+  defp describe_count(count), do: "exactly #{count}"
 end

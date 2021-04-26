@@ -50,14 +50,20 @@ defmodule MyApp.QueueTest do
 
   import FaktoryWorker.Testing
 
-  setup do
-    reset_queues()
-  end
+  setup :reset_queues
 
   test "perform/1" do
     MyApp.Job.perform_async("hello, world!")
     assert_enqueued MyApp.Job, args: ["hello, world!"]
     refute_enqueued MyApp.Job, args: ["goodbye!"]
+  end
+
+  test "multiple enqueues" do
+    for _ <- 1..10 do
+      MyApp.Job.perform_async("brrrrr")
+    end
+
+    assert_enqueued MyApp.Job, count: 10
   end
 
   test "perform/2" do
@@ -83,6 +89,10 @@ defmodule MyApp.JobTest do
   use ExUnit.Case
 
   import FaktoryWorker.Testing
+
+  test "handles no arguments" do
+    assert perform_job(MyApp.Job) == :ok
+  end
 
   test "handles strings" do
     assert perform_job(MyApp.Job, "foo") == :ok
