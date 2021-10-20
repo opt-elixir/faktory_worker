@@ -4,7 +4,7 @@ defmodule FaktoryWorker.MixProject do
   def project do
     [
       app: :faktory_worker,
-      version: "1.3.0",
+      version: "1.5.0",
       elixir: "~> 1.8",
       description: description(),
       package: package(),
@@ -18,7 +18,7 @@ defmodule FaktoryWorker.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:crypto, :ssl, :logger]
     ]
   end
 
@@ -27,13 +27,13 @@ defmodule FaktoryWorker.MixProject do
 
   defp deps do
     [
-      {:broadway, "~> 0.6.1"},
+      {:broadway, "~> 1.0.0"},
       {:certifi, "~> 2.5"},
       {:excoveralls, "~> 0.10", only: :test},
       {:jason, "~> 1.1"},
       {:poolboy, "~> 1.5"},
-      {:telemetry, "~> 0.4.0"},
-      {:ex_doc, "~> 0.23.0", only: :dev, runtime: false},
+      {:telemetry, "~> 0.4.0 or ~> 1.0"},
+      {:ex_doc, "~> 0.24.1", only: :dev, runtime: false},
       {:mox, "~> 1.0", only: :test}
     ]
   end
@@ -50,8 +50,9 @@ defmodule FaktoryWorker.MixProject do
   defp doc_extras() do
     [
       "README.md": [filename: "faktory-worker"],
-      "configuration.md": [filename: "configuration", title: "Configuration"],
-      "logging.md": [filename: "logging", title: "Logging"]
+      "docs/configuration.md": [title: "Configuration"],
+      "docs/logging.md": [title: "Logging"],
+      "docs/sandbox-testing.md": [title: "Sandbox Testing"]
     ]
   end
 

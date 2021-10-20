@@ -13,4 +13,15 @@ defmodule FaktoryWorker.JobSupervisor do
   def format_supervisor_name(name) when is_atom(name) do
     :"#{name}_job_supervisor"
   end
+
+  @spec async_nolink(module(), module(), list()) :: Task.t()
+  def async_nolink(job_supervisor, job_module, job_args) do
+    Task.Supervisor.async_nolink(
+      job_supervisor,
+      job_module,
+      :perform,
+      job_args,
+      shutdown: :brutal_kill
+    )
+  end
 end

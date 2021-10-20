@@ -144,13 +144,29 @@ defmodule FaktoryWorker.Job do
   @doc false
   def perform_async(_, {:error, _} = error, _), do: error
 
-  def perform_async(pipeline_name, payload, _opts) do
-    message = %Broadway.Message{
-      acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-      data: {pipeline_name, payload}
-    }
+  def perform_async(pipeline_name, payload, opts) do
+    if Sandbox.active?() do
+      Sandbox.enqueue_job(
+        String.to_existing_atom("Elixir." <> payload.jobtype),
+        payload.args,
+        opts
+      )
+    else
+      message = %Broadway.Message{
+        acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
+        data: {pipeline_name, payload}
+      }
 
-    Broadway.push_messages(pipeline_name, [message])
+      Broadway.push_messages(pipeline_name, [message])
+    end
+  end
+
+  @doc false
+  def normalize_job_args(args) when is_list(args) do
+    Enum.map(args, fn
+      %_{} = arg -> Map.from_struct(arg)
+      arg -> arg
+    end)
   end
 
   @doc false
@@ -223,15 +239,5 @@ defmodule FaktoryWorker.Job do
     module
     |> to_string()
     |> String.trim_leading("Elixir.")
-  end
-
-  defp normalize_job_args(job) do
-    Enum.map(job, fn
-      %_{} = arg ->
-        Map.from_struct(arg)
-
-      arg ->
-        arg
-    end)
   end
 end
