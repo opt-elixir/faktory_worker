@@ -154,6 +154,22 @@ defmodule FaktoryWorker.Job.JobTest do
 
       assert error == {:error, "The field 'at' has an invalid value '\"not a date/time\"'"}
     end
+
+    test "should be able to specify a a custom jobtype" do
+      data = %{hey: "there!"}
+      opts = [jobtype: "custom_job_type"]
+      job = Job.build_payload(Test.Worker, data, opts)
+
+      assert job.jobtype == "custom_job_type"
+    end
+
+    test "should return an error for a non binary jobtype" do
+      data = %{hey: "there!"}
+      opts = [jobtype: 1]
+      error = Job.build_payload(Test.Worker, data, opts)
+
+      assert error == {:error, "The field 'jobtype' has an invalid value '1'"}
+    end
   end
 
   describe "perform_async/2" do

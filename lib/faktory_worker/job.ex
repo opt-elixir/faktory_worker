@@ -78,13 +78,13 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.Random
+  alias FaktoryWorker.{Random, Sandbox}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
   # backtrace
   # created_at
-  @optional_job_fields [:queue, :custom, :retry, :reserve_for, :at]
+  @optional_job_fields [:jobtype, :queue, :custom, :retry, :reserve_for, :at]
 
   defmacro __using__(using_opts \\ []) do
     alias FaktoryWorker.Job
@@ -124,13 +124,29 @@ defmodule FaktoryWorker.Job do
   @doc false
   def perform_async(_, {:error, _} = error, _), do: error
 
-  def perform_async(pipeline_name, payload, _opts) do
-    message = %Broadway.Message{
-      acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-      data: {pipeline_name, payload}
-    }
+  def perform_async(pipeline_name, payload, opts) do
+    if Sandbox.active?() do
+      Sandbox.enqueue_job(
+        String.to_existing_atom("Elixir." <> payload.jobtype),
+        payload.args,
+        opts
+      )
+    else
+      message = %Broadway.Message{
+        acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
+        data: {pipeline_name, payload}
+      }
 
-    Broadway.push_messages(pipeline_name, [message])
+      Broadway.push_messages(pipeline_name, [message])
+    end
+  end
+
+  @doc false
+  def normalize_job_args(args) when is_list(args) do
+    Enum.map(args, fn
+      %_{} = arg -> Map.from_struct(arg)
+      arg -> arg
+    end)
   end
 
   defp append_optional_fields(args, opts) do
@@ -150,6 +166,7 @@ defmodule FaktoryWorker.Job do
     end)
   end
 
+  defp is_valid_field_value?(:jobtype, value), do: is_binary(value)
   defp is_valid_field_value?(:queue, value), do: is_binary(value)
   defp is_valid_field_value?(:custom, value), do: is_map(value)
   defp is_valid_field_value?(:retry, value), do: is_integer(value)
@@ -177,15 +194,5 @@ defmodule FaktoryWorker.Job do
     module
     |> to_string()
     |> String.trim_leading("Elixir.")
-  end
-
-  defp normalize_job_args(job) do
-    Enum.map(job, fn
-      %_{} = arg ->
-        Map.from_struct(arg)
-
-      arg ->
-        arg
-    end)
   end
 end
