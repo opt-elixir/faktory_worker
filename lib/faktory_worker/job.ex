@@ -88,7 +88,7 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry}
+  alias FaktoryWorker.{ConnectionManager, Random, Pool, Sandbox, Telemetry}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
