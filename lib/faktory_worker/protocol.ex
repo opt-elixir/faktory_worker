@@ -4,6 +4,10 @@ defmodule FaktoryWorker.Protocol do
   @type protocol_command ::
           {:hello, args :: map()}
           | {:push, args :: map()}
+          | {:batch_new, args :: map()}
+          | {:batch_commit, batch_id :: String.t()}
+          | {:batch_status, batch_id :: String.t()}
+          | {:batch_open, batch_id :: String.t()}
           | {:beat, process_wid :: String.t()}
           | {:fetch, queues :: [String.t()]}
           | {:ack, job_id :: String.t()}
@@ -26,6 +30,22 @@ defmodule FaktoryWorker.Protocol do
 
   def encode_command({:push, args}) do
     encode("PUSH", args)
+  end
+
+  def encode_command({:batch_new, args}) do
+    encode("BATCH NEW", args)
+  end
+
+  def encode_command({:batch_commit, batch_id}) do
+    encode("BATCH COMMIT", batch_id)
+  end
+
+  def encode_command({:batch_status, batch_id}) do
+    encode("BATCH STATUS", batch_id)
+  end
+
+  def encode_command({:batch_open, batch_id}) do
+    encode("BATCH OPEN", batch_id)
   end
 
   def encode_command({:beat, process_wid}) do
@@ -61,9 +81,7 @@ defmodule FaktoryWorker.Protocol do
   end
 
   @spec decode_response(response :: String.t()) :: protocol_response()
-  def decode_response("+HI " <> rest) do
-    decode(rest)
-  end
+  def decode_response("+HI " <> rest), do: decode(rest)
 
   def decode_response("+OK\r\n"), do: {:ok, "OK"}
 
@@ -85,6 +103,8 @@ defmodule FaktoryWorker.Protocol do
     # that will be at the end of the next server response
     {:ok, {:bulk_string, length + 2}}
   end
+
+  def decode_response("b-" <> _ = response), do: {:ok, trim_newline(response)}
 
   def decode_response("+{" <> _ = response) do
     response
