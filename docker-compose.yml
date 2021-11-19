@@ -1,22 +1,23 @@
-faktory_test:
-  container_name: faktory_worker_test
-  image: contribsys/faktory:1.4.0
-  ports:
-    - "7420:7420"
-    - "7419:7419"
+services:
+  faktory_test:
+    container_name: faktory_worker_test
+    image: contribsys/faktory:1.4.0
+    ports:
+      - "7420:7420"
+      - "7419:7419"
 
-faktory_test_tls:
-  container_name: faktory_worker_test_tls
-  image: acjensen/faktory-tls
-  ports:
-    - "7520:7420"
-    - "7519:7419"
+  faktory_test_tls:
+    container_name: faktory_worker_test_tls
+    image: acjensen/faktory-tls
+    ports:
+      - "7520:7420"
+      - "7519:7419"
 
-faktory_password_test:
-  container_name: faktory_worker_password_test
-  image: contribsys/faktory:1.4.0
-  ports:
-    - "7620:7420"
-    - "7619:7419"
-  environment:
-    - FAKTORY_PASSWORD=very-secret
+  faktory_password_test:
+    container_name: faktory_worker_password_test
+    image: contribsys/faktory:1.4.0
+    ports:
+      - "7620:7420"
+      - "7619:7419"
+    environment:
+      - FAKTORY_PASSWORD=very-secret
