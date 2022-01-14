@@ -152,12 +152,12 @@ defmodule FaktoryWorker.Job do
         opts
       )
     else
-      message = %Broadway.Message{
-        acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-        data: {pipeline_name, payload}
-      }
-
-      Broadway.push_messages(pipeline_name, [message])
+      # TODO:: do we want to split pipelines into multiple threads???
+      # It was implemented with a Broadway & Producers <--> processes model.
+      # But Faktory is a job server and do we want to care and build one more not needed layer???
+      opts
+      |> faktory_name()
+      |> push(payload)
     end
   end
 
@@ -218,7 +218,11 @@ defmodule FaktoryWorker.Job do
   defp push_pipeline_name(opts) do
     opts
     |> faktory_name()
-    |> FaktoryWorker.PushPipeline.format_pipeline_name()
+    |> format_pipeline_name()
+  end
+
+  defp format_pipeline_name(name) when is_atom(name) do
+    :"#{name}_pipeline"
   end
 
   defp faktory_name(opts) do
