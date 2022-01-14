@@ -30,7 +30,7 @@ defmodule FaktoryWorker.ConnectionHelpers do
   defmacro worker_connection_mox() do
     quote do
       {:ok, expected_host} = :inet.gethostname()
-      expected_sys_pid = System.get_pid()
+      expected_sys_pid = System.pid()
       runtime_vsn = System.version()
 
       expect(FaktoryWorker.SocketMock, :connect, fn host, port, _ ->
