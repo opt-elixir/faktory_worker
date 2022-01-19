@@ -85,7 +85,7 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry}
+  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry, Sandbox}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
@@ -125,9 +125,17 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(payload, opts) do
-    opts
-    |> faktory_name()
-    |> push(payload)
+    if Sandbox.active?() do
+      Sandbox.enqueue_job(
+        String.to_existing_atom("Elixir." <> payload.jobtype),
+        payload.args,
+        opts
+      )
+    else
+      opts
+      |> faktory_name()
+      |> push(payload)
+    end
   end
 
   @doc false
