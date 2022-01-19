@@ -9,7 +9,7 @@ defmodule FaktoryWorker.JobIntegrationTest do
 
   setup :flush_faktory!
 
-  describe "perform_async/3" do
+  describe "perform_async/2" do
     test "should send a new job to faktory" do
       faktory_name = :"Test_#{Random.string()}"
 
@@ -21,7 +21,8 @@ defmodule FaktoryWorker.JobIntegrationTest do
 
       job = Job.build_payload(DefaultWorker, %{hey: "there!"}, opts)
 
-      Job.perform_async(job, opts)
+      {:ok, job_sent} = Job.perform_async(job, opts)
+      assert job_sent == job
 
       assert_queue_size("default", 1)
 

@@ -7,11 +7,6 @@ defmodule FaktoryWorker.Batch do
   all jobs in a batch have completed, Faktory will queue a callback job. This
   allows building complex job workflows with dependencies.
 
-  Jobs pushed as part of a batch _must_ be pushed synchronously. This can be
-  done using the `skip_pipeline: true` option when calling `perform_async/2`. If
-  a job isn't pushed synchronously, you may encounter a race condition where the
-  batch is committed before all jobs have been pushed.
-
   ## Creating a batch
 
   A batch is created using `new!/1` and must provide a description and declare
@@ -25,9 +20,9 @@ defmodule FaktoryWorker.Batch do
   alias FaktoryWorker.Batch
 
   {:ok, bid} = Batch.new!(on_success: {MyApp.EmailReportJob, [], []})
-  MyApp.Job.perform_async([1, 2], custom: %{"bid" => bid}, skip_pipeline: true)
-  MyApp.Job.perform_async([3, 4], custom: %{"bid" => bid}, skip_pipeline: true)
-  MyApp.Job.perform_async([5, 6], custom: %{"bid" => bid}, skip_pipeline: true)
+  MyApp.Job.perform_async([1, 2], custom: %{"bid" => bid})
+  MyApp.Job.perform_async([3, 4], custom: %{"bid" => bid})
+  MyApp.Job.perform_async([5, 6], custom: %{"bid" => bid})
   Batch.commit(bid)
   ```
 
@@ -45,7 +40,7 @@ defmodule FaktoryWorker.Batch do
     def perform(arg1, arg2, bid) do
       Batch.open(bid)
 
-      MyApp.OtherJob.perform_async([1, 2], custom: %{"bid" => bid}, skip_pipeline: true)
+      MyApp.OtherJob.perform_async([1, 2], custom: %{"bid" => bid})
 
       Batch.commit(bid)
     end

@@ -59,13 +59,10 @@ defmodule FaktoryWorker.Job do
 
   ## Synchronous job pushing
 
-  By default, jobs are pushed asynchronously to the Faktory server. To ensure a
-  job has been successfully submitted before continuing, jobs can be pushed
-  synchronously instead. To do this, pass the `:skip_pipeline` option with the
-  value of `true` to `perform_async/2`.
-
-  Synchronous pushing is required in certain situations to guarantee ordering,
-  such as when using the Faktory Enterprise batching feature.
+  Previous version used Broadway to send jobs and `:skip_pipeline` parameter was used to do it synchronously.
+  `:skip_pipeline` is not supported anymore.
+  Since Batch operations is a feature of Faktory Enterprise this library now sends any single job synchronously
+  and makes HTTP call to faktory server (see `FaktoryWorker.Batch`).
 
   ## Worker Configuration
 
@@ -88,7 +85,7 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.{ConnectionManager, Random, Pool, Sandbox, Telemetry}
+  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
