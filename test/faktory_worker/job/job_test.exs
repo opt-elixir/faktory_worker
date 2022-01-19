@@ -184,15 +184,4 @@ defmodule FaktoryWorker.Job.JobTest do
     end
   end
 
-  describe "perform_async/3" do
-    test "should not send a bad payload" do
-      data = %{hey: "there!"}
-      opts = [queue: 123]
-      {:error, _} = payload = Job.build_payload(Test.Worker, data, opts)
-
-      {:error, error} = Job.perform_async(TestPipeline, payload, [])
-
-      assert error == "The field 'queue' has an invalid value '123'"
-    end
-  end
 end

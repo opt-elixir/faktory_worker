@@ -128,37 +128,9 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(payload, opts) do
-    case Keyword.get(opts, :skip_pipeline, false) do
-      false ->
-        opts
-        |> push_pipeline_name()
-        |> perform_async(payload, opts)
-
-      true ->
-        opts
-        |> faktory_name()
-        |> push(payload)
-    end
-  end
-
-  @doc false
-  def perform_async(_, {:error, _} = error, _), do: error
-
-  def perform_async(pipeline_name, payload, opts) do
-    if Sandbox.active?() do
-      Sandbox.enqueue_job(
-        String.to_existing_atom("Elixir." <> payload.jobtype),
-        payload.args,
-        opts
-      )
-    else
-      # TODO:: do we want to split pipelines into multiple threads???
-      # It was implemented with a Broadway & Producers <--> processes model.
-      # But Faktory is a job server and do we want to care and build one more not needed layer???
-      opts
-      |> faktory_name()
-      |> push(payload)
-    end
+    opts
+    |> faktory_name()
+    |> push(payload)
   end
 
   @doc false
@@ -170,6 +142,7 @@ defmodule FaktoryWorker.Job do
   end
 
   @doc false
+  def push(_, invalid_payload = {:error, _}), do: invalid_payload
   def push(faktory_name, job) do
     faktory_name
     |> Pool.format_pool_name()
@@ -213,16 +186,6 @@ defmodule FaktoryWorker.Job do
 
   defp field_error_message(field, value) do
     "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"
-  end
-
-  defp push_pipeline_name(opts) do
-    opts
-    |> faktory_name()
-    |> format_pipeline_name()
-  end
-
-  defp format_pipeline_name(name) when is_atom(name) do
-    :"#{name}_pipeline"
   end
 
   defp faktory_name(opts) do
