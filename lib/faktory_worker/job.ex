@@ -131,6 +131,7 @@ defmodule FaktoryWorker.Job do
         payload.args,
         opts
       )
+      {:ok, payload}
     else
       opts
       |> faktory_name()
