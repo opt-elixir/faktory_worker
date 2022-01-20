@@ -352,6 +352,10 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
         :ok
       end)
 
+      expect(FaktoryWorker.SocketMock, :send, fn _, "END" <> _ ->
+        :ok
+      end)
+
       expect(FaktoryWorker.SocketMock, :recv, fn _ ->
         # return the terminate state here to prevent futher beat commands
         {:ok, "+{\"state\": \"terminate\"}\r\n"}
