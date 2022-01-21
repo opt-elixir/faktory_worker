@@ -131,6 +131,17 @@ $ docker-compose up -d
 Creating faktory_worker_test          ... done
 Creating faktory_worker_test_tls      ... done
 Creating faktory_worker_password_test ... done
+```
 
+
+Faktory have free open-source solution and enterprise edition. 
+
+If you don't have enterprise license then tests will fail on enterprise features (batching operations etc). In this case you can exclude them by tag `:enterprise`
+```sh
+$ mix test --exclude enterprise 
+```
+
+If you are enterprise user all tests should pass
+```sh
 $ mix test
 ```
