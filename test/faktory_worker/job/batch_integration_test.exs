@@ -22,7 +22,6 @@ defmodule FaktoryWorker.BatchIntegrationTest do
     {:ok, faktory_name: faktory_name}
   end
 
-  @tag :enterprise
   describe "new!/1" do
     test "creates a new batch", %{faktory_name: faktory_name} do
       opts = [
