@@ -67,6 +67,10 @@ Now you can start sending jobs to faktory and they will be automatically picked 
 ```elixir
 :ok = MyApp.SomeWorker.perform_async("hey there!")
 ```
+#### Important! Since version 1.6.1 Broadway was removed from dependencies and response from perfomr_async is tuple {:ok, job_meta} with meta information about scheduled job.
+```elixir
+{:ok, job_meta} = MyApp.SomeWorker.perform_async("hey there!")
+```
 
 ## Sending multiple job arguments
 
