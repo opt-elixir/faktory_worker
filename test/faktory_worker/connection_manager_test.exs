@@ -91,7 +91,7 @@ defmodule FaktoryWorker.ConnectionManagerTest do
                {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
 
                assert result == "halt reason"
-             end) =~ "[warn]  [123456] Halt: halt reason"
+             end) |> String.match?(~r/\[warn.*(?<!ing)\]*\[123456\]*[Halt: halt reason]/)
     end
 
     test "should unset the connection when there is a socket failure" do

@@ -24,3 +24,7 @@ faktory_worker-*.tar
 
 # ignore elixir language server files
 /.elixir_ls
+
+.idea/
+.DS_Store
+.vscode

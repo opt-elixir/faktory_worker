@@ -38,7 +38,6 @@ defmodule FaktoryWorker do
         [
           {FaktoryWorker.QueueManager, opts},
           {FaktoryWorker.Pool, opts},
-          {FaktoryWorker.PushPipeline, opts},
           {FaktoryWorker.JobSupervisor, opts},
           {FaktoryWorker.WorkerSupervisor, opts}
         ]

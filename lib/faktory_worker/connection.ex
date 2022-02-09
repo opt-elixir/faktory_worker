@@ -115,7 +115,7 @@ defmodule FaktoryWorker.Connection do
 
   defp put_worker_args(args, opts) do
     process_wid = Keyword.get(opts, :process_wid)
-    sys_pid = System.get_pid()
+    sys_pid = System.pid()
     {:ok, hostname} = :inet.gethostname()
 
     worker_args = %{

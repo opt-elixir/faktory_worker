@@ -59,13 +59,10 @@ defmodule FaktoryWorker.Job do
 
   ## Synchronous job pushing
 
-  By default, jobs are pushed asynchronously to the Faktory server. To ensure a
-  job has been successfully submitted before continuing, jobs can be pushed
-  synchronously instead. To do this, pass the `:skip_pipeline` option with the
-  value of `true` to `perform_async/2`.
-
-  Synchronous pushing is required in certain situations to guarantee ordering,
-  such as when using the Faktory Enterprise batching feature.
+  Previous version used Broadway to send jobs and `:skip_pipeline` parameter was used to do it synchronously.
+  `:skip_pipeline` is not supported anymore.
+  Since Batch operations is a feature of Faktory Enterprise this library now sends any single job synchronously
+  and makes HTTP call to faktory server (see `FaktoryWorker.Batch`).
 
   ## Worker Configuration
 
@@ -88,7 +85,7 @@ defmodule FaktoryWorker.Job do
   means only values that implement the `Jason.Encoder` protocol are valid when calling the `perform_async/2` function.
   """
 
-  alias FaktoryWorker.{ConnectionManager, Random, Pool, Sandbox, Telemetry}
+  alias FaktoryWorker.{ConnectionManager, Random, Pool, Telemetry, Sandbox}
 
   # Look at supporting the following optional fields when pushing a job
   # priority
@@ -128,36 +125,17 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def perform_async(payload, opts) do
-    case Keyword.get(opts, :skip_pipeline, false) do
-      false ->
-        opts
-        |> push_pipeline_name()
-        |> perform_async(payload, opts)
-
-      true ->
-        opts
-        |> faktory_name()
-        |> push(payload)
-    end
-  end
-
-  @doc false
-  def perform_async(_, {:error, _} = error, _), do: error
-
-  def perform_async(pipeline_name, payload, opts) do
     if Sandbox.active?() do
       Sandbox.enqueue_job(
         String.to_existing_atom("Elixir." <> payload.jobtype),
         payload.args,
         opts
       )
+      {:ok, payload}
     else
-      message = %Broadway.Message{
-        acknowledger: {FaktoryWorker.PushPipeline.Acknowledger, :push_message, []},
-        data: {pipeline_name, payload}
-      }
-
-      Broadway.push_messages(pipeline_name, [message])
+      opts
+      |> faktory_name()
+      |> push(payload)
     end
   end
 
@@ -170,6 +148,7 @@ defmodule FaktoryWorker.Job do
   end
 
   @doc false
+  def push(_, invalid_payload = {:error, _}), do: invalid_payload
   def push(faktory_name, job) do
     faktory_name
     |> Pool.format_pool_name()
@@ -213,12 +192,6 @@ defmodule FaktoryWorker.Job do
 
   defp field_error_message(field, value) do
     "The field '#{Atom.to_string(field)}' has an invalid value '#{inspect(value)}'"
-  end
-
-  defp push_pipeline_name(opts) do
-    opts
-    |> faktory_name()
-    |> FaktoryWorker.PushPipeline.format_pipeline_name()
   end
 
   defp faktory_name(opts) do

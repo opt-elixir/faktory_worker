@@ -1,7 +1,7 @@
-use Mix.Config
+import Config
 
 if Mix.env() == :test do
-  config :logger, backends: []
+  config :logger, backends: [:console]
 
   # Set the worker startup delay to 1ms to ensure tests are speedy
   config :faktory_worker, worker_startup_delay: 1

@@ -23,7 +23,6 @@ defmodule FaktoryWorkerTest do
       assert config == [
                {FaktoryWorker.QueueManager, [name: :my_test_faktory]},
                {FaktoryWorker.Pool, [name: :my_test_faktory]},
-               {FaktoryWorker.PushPipeline, [name: :my_test_faktory]},
                {FaktoryWorker.JobSupervisor, [name: :my_test_faktory]},
                {FaktoryWorker.WorkerSupervisor, [name: :my_test_faktory]}
              ]
@@ -42,7 +41,6 @@ defmodule FaktoryWorkerTest do
       assert config == [
                {FaktoryWorker.QueueManager, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.Pool, [name: FaktoryWorker, pool: [size: 25]]},
-               {FaktoryWorker.PushPipeline, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.JobSupervisor, [name: FaktoryWorker, pool: [size: 25]]},
                {FaktoryWorker.WorkerSupervisor, [name: FaktoryWorker, pool: [size: 25]]}
              ]
@@ -63,8 +61,6 @@ defmodule FaktoryWorkerTest do
                {FaktoryWorker.QueueManager,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
                {FaktoryWorker.Pool,
-                [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
-               {FaktoryWorker.PushPipeline,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
                {FaktoryWorker.JobSupervisor,
                 [name: FaktoryWorker, connection: [host: "somehost", port: 7519]]},
@@ -101,7 +97,6 @@ defmodule FaktoryWorkerTest do
            [
              {FaktoryWorker.QueueManager, [name: FaktoryWorker]},
              {FaktoryWorker.Pool, [name: FaktoryWorker]},
-             {FaktoryWorker.PushPipeline, [name: FaktoryWorker]},
              {FaktoryWorker.JobSupervisor, [name: FaktoryWorker]},
              {FaktoryWorker.WorkerSupervisor, [name: FaktoryWorker]}
            ],
