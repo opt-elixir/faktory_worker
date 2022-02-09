@@ -1,4 +1,13 @@
 
+## [1.7.0] - 2022-02-09
+### Removed
+
+- Removed Broadway to simplify supervision tree [#149](https://github.com/opt-elixir/faktory_worker/pull/149)
+
+## Updates
+
+- Updated exDoc [#151](https://github.com/opt-elixir/faktory_worker/pull/151)
+
 ## [1.6.0] - 2021-11-05
   
 
