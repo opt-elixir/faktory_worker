@@ -1,3 +1,6 @@
+## [1.8.0] - 2022-04-04
+- Fix `parent_id` vs `parent_bid`
+This was a typo making passing of children batches require using `parent_id` over `parent_bid` which the docs say
 
 ## [1.7.0] - 2022-02-09
 ### Removed
