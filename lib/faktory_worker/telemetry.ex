@@ -38,6 +38,10 @@ defmodule FaktoryWorker.Telemetry do
     log_info("NOTUNIQUE", job.jid, job.args, job.jobtype)
   end
 
+  defp log_event(:push, %{status: {:error, :timeout}}, job) do
+    log_info("Push Timeout", job.jid, job.args, job.jobtype)
+  end
+
   # Beat events
 
   # no state change, status == status
