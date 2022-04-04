@@ -99,13 +99,13 @@ defmodule FaktoryWorker.Batch do
   def new!(opts \\ []) do
     success = Keyword.get(opts, :on_success)
     complete = Keyword.get(opts, :on_complete)
-    bid = Keyword.get(opts, :parent_id)
+    bid = Keyword.get(opts, :parent_bid)
     description = Keyword.get(opts, :description)
 
     payload =
       %{}
       |> maybe_put_description(description)
-      |> maybe_put_parent_id(bid)
+      |> maybe_put_parent_bid(bid)
       |> maybe_put_callback(:success, success)
       |> maybe_put_callback(:complete, complete)
       |> validate!()
@@ -159,8 +159,8 @@ defmodule FaktoryWorker.Batch do
   defp maybe_put_description(payload, description),
     do: Map.put_new(payload, :description, description)
 
-  defp maybe_put_parent_id(payload, nil), do: payload
-  defp maybe_put_parent_id(payload, bid), do: Map.put_new(payload, :parent_bid, bid)
+  defp maybe_put_parent_bid(payload, nil), do: payload
+  defp maybe_put_parent_bid(payload, bid), do: Map.put_new(payload, :parent_bid, bid)
 
   defp maybe_put_callback(payload, _type, nil), do: payload
 
