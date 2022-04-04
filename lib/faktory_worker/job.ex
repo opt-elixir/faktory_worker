@@ -131,6 +131,7 @@ defmodule FaktoryWorker.Job do
         payload.args,
         opts
       )
+
       {:ok, payload}
     else
       opts
@@ -149,6 +150,7 @@ defmodule FaktoryWorker.Job do
 
   @doc false
   def push(_, invalid_payload = {:error, _}), do: invalid_payload
+
   def push(faktory_name, job) do
     faktory_name
     |> Pool.format_pool_name()
@@ -202,6 +204,12 @@ defmodule FaktoryWorker.Job do
     Telemetry.execute(:push, :ok, job)
 
     {:ok, job}
+  end
+
+  defp handle_push_result({:error, :timeout}, job) do
+    Telemetry.execute(:push, {:error, :timeout}, job)
+
+    {:error, :timeout}
   end
 
   defp handle_push_result({:error, reason}, _) do

@@ -18,7 +18,9 @@ defmodule FaktoryWorker.ConnectionManager.Server do
           FaktoryWorker.Connection.response()
   def send_command(connection_manager, command, timeout \\ 5000)
 
-  def send_command(connection_manager, {:fetch, _} = command, timeout) do
+  # watch for and catch exits from command that may timeout
+  def send_command(connection_manager, {command_type, _} = command, timeout)
+      when command_type in [:fetch, :push] do
     try do
       GenServer.call(connection_manager, {:send_command, command}, timeout)
     catch
