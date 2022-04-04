@@ -1,3 +1,7 @@
+## [1.8.0] - 2022-04-04
+- Fix `parent_id` vs `parent_bid`
+This was a typo making passing of children batches require using `parent_id` over `parent_bid` which the docs say
+- Bump some deps with dependabot (`telemetry` 1.0.0 to 1.1.0, `ex_doc` from `0.28` to `0.28.3`
 
 ## [1.7.0] - 2022-02-09
 ### Removed

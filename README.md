@@ -13,7 +13,7 @@ To get started with Faktory Worker first add the dependency to your `mix.exs` fi
 ```elixir
 defp deps do
   [
-    {:faktory_worker, "~> 1.7.0"}
+    {:faktory_worker, "~> 1.8.0"}
   ]
 end
 ```
@@ -149,3 +149,4 @@ If you are enterprise user all tests should pass
 ```sh
 $ mix test
 ```
+
