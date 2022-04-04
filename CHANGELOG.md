@@ -1,3 +1,8 @@
+## [1.8.1] - 2022-04-04
+
+- Push timeouts will no longer `raise` by default (instead of raising, they will
+  now return `{:error, :timeout}`).
+
 ## [1.8.0] - 2022-04-04
 - Fix `parent_id` vs `parent_bid`
 This was a typo making passing of children batches require using `parent_id` over `parent_bid` which the docs say
@@ -13,7 +18,7 @@ This was a typo making passing of children batches require using `parent_id` ove
 - Updated exDoc [#151](https://github.com/opt-elixir/faktory_worker/pull/151)
 
 ## [1.6.0] - 2021-11-05
-  
+
 
 ### Added
 
