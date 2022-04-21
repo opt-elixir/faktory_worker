@@ -68,6 +68,10 @@ defmodule FaktoryWorker.Protocol do
     encode("FAIL", args)
   end
 
+  def encode_command({:mutate, args}) do
+    encode("MUTATE", args)
+  end
+
   def encode_command(:info) do
     encode("INFO")
   end
