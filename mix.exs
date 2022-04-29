@@ -51,7 +51,8 @@ defmodule FaktoryWorker.MixProject do
       "README.md": [filename: "faktory-worker"],
       "docs/configuration.md": [title: "Configuration"],
       "docs/logging.md": [title: "Logging"],
-      "docs/sandbox-testing.md": [title: "Sandbox Testing"]
+      "docs/sandbox-testing.md": [title: "Sandbox Testing"],
+      "docs/mutate.md": [title: "Mutate API"]
     ]
   end
 
