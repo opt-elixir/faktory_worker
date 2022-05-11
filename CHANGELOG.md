@@ -1,3 +1,8 @@
+## [1.9.0] - 2022-05-11
+
+- `FaktoryWorker.send_command/2` added to make one-off commands more ergonomic
+- support added for `TRACK GET` and `TRACK SET` commands
+
 ## [1.8.1] - 2022-04-04
 
 - Push timeouts will no longer `raise` by default (instead of raising, they will
