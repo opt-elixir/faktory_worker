@@ -17,20 +17,13 @@ this may be enhanced with a first-class Elixir API, but for now calls must be
 made manually:
 
 ```elixir
-alias FaktoryWorker.Pool
-alias FaktoryWorker.ConnectionManager.Server
-
-pool = FaktoryWorker # or whichever custom pool you want to use
-conn = Pool.format_pool_name(pool)
-timeout = 5_000
-
 args = %{
   cmd: "kill",
   target: "default",
   filter: %{jobtype: "MyApp.Job"}
 }
 
-:poolboy.transaction(&Server.send_command(&1, {:mutate, args}), timeout)
+FaktoryWorker.send_command({:mutate, args})
 ```
 
 See [here](https://github.com/contribsys/faktory/wiki/Mutate-API#mutate) for the

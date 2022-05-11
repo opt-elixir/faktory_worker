@@ -48,11 +48,9 @@ defmodule FaktoryWorker.Batch do
   ```
 
   """
-  alias FaktoryWorker.{ConnectionManager, Job, Pool}
+  alias FaktoryWorker.Job
 
   @type bid :: String.t()
-
-  @default_timeout 5000
 
   @doc """
   Creates a new Faktory batch
@@ -90,10 +88,14 @@ defmodule FaktoryWorker.Batch do
 
   The parent batch ID--only used if you are creating a child batch.
 
-  ### `:faktory_worker`
+  ### `:faktory_name`
 
   The name of the `FaktoryWorker` instance (determines which connection pool
   will be used).
+
+  ### `:timeout`
+
+  How long to wait for a response, in ms.
   """
   @spec new!(Keyword.t()) :: {:ok, bid()} | {:error, any()}
   def new!(opts \\ []) do
@@ -110,7 +112,8 @@ defmodule FaktoryWorker.Batch do
       |> maybe_put_callback(:complete, complete)
       |> validate!()
 
-    send_command({:batch_new, payload}, opts)
+    opts = Keyword.take(opts, [:faktory_name, :timeout])
+    FaktoryWorker.send_command({:batch_new, payload}, opts)
   end
 
   @doc """
@@ -120,7 +123,7 @@ defmodule FaktoryWorker.Batch do
   is committed, but
   """
   def commit(bid, opts \\ []) do
-    send_command({:batch_commit, bid}, opts)
+    FaktoryWorker.send_command({:batch_commit, bid}, opts)
   end
 
   @doc """
@@ -132,7 +135,7 @@ defmodule FaktoryWorker.Batch do
   After opening the batch, it must be committed again using `commit/2`.
   """
   def open(bid, opts \\ []) do
-    send_command({:batch_open, bid}, opts)
+    FaktoryWorker.send_command({:batch_open, bid}, opts)
   end
 
   @doc """
@@ -141,17 +144,7 @@ defmodule FaktoryWorker.Batch do
   Returns a map representing the status
   """
   def status(bid, opts \\ []) do
-    send_command({:batch_status, bid}, opts)
-  end
-
-  defp send_command(command, opts) do
-    opts
-    |> Keyword.get(:faktory_name, FaktoryWorker)
-    |> Pool.format_pool_name()
-    |> :poolboy.transaction(
-      &ConnectionManager.Server.send_command(&1, command),
-      @default_timeout
-    )
+    FaktoryWorker.send_command({:batch_status, bid}, opts)
   end
 
   defp maybe_put_description(payload, nil), do: payload
