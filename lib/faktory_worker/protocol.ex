@@ -12,6 +12,9 @@ defmodule FaktoryWorker.Protocol do
           | {:fetch, queues :: [String.t()]}
           | {:ack, job_id :: String.t()}
           | {:fail, args :: map()}
+          | {:mutate, args :: map()}
+          | {:track_get, job_id :: String.t()}
+          | {:track_set, args :: map()}
           | :info
           | :end
           | :flush
@@ -72,6 +75,14 @@ defmodule FaktoryWorker.Protocol do
     encode("MUTATE", args)
   end
 
+  def encode_command({:track_get, job_id}) do
+    encode("TRACK GET", job_id)
+  end
+
+  def encode_command({:track_set, args}) do
+    encode("TRACK SET", args)
+  end
+
   def encode_command(:info) do
     encode("INFO")
   end
@@ -82,6 +93,10 @@ defmodule FaktoryWorker.Protocol do
 
   def encode_command(:flush) do
     encode("FLUSH")
+  end
+
+  def encode_command(command) do
+    raise "invalid command: unable to encode `#{inspect(command)}`"
   end
 
   @spec decode_response(response :: String.t()) :: protocol_response()
