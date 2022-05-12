@@ -13,7 +13,7 @@ To get started with Faktory Worker first add the dependency to your `mix.exs` fi
 ```elixir
 defp deps do
   [
-    {:faktory_worker, "~> 1.8.0"}
+    {:faktory_worker, "~> 1.9.0"}
   ]
 end
 ```
@@ -138,15 +138,14 @@ Creating faktory_worker_password_test ... done
 ```
 
 
-Faktory have free open-source solution and enterprise edition. 
+Faktory have free open-source solution and enterprise edition.
 
 If you don't have enterprise license then tests will fail on enterprise features (batching operations etc). In this case you can exclude them by tag `:enterprise`
 ```sh
-$ mix test --exclude enterprise 
+$ mix test --exclude enterprise
 ```
 
 If you are enterprise user all tests should pass
 ```sh
 $ mix test
 ```
-
