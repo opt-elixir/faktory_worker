@@ -1,3 +1,7 @@
+## [1.9.1] - 2022-08-24
+
+- Add more granular warn/error level logging for various events in telemetry ([#166](https://github.com/opt-elixir/faktory_worker/pull/166))
+
 ## [1.9.0] - 2022-05-11
 
 - `FaktoryWorker.send_command/2` added to make one-off commands more ergonomic
