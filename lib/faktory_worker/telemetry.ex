@@ -35,7 +35,7 @@ defmodule FaktoryWorker.Telemetry do
   end
 
   defp log_event(:push, %{status: {:error, :not_unique}}, job) do
-    log_info("NOTUNIQUE", job.jid, job.args, job.jobtype)
+    log_warn("NOTUNIQUE", job.jid, job.args, job.jobtype)
   end
 
   # Beat events
@@ -50,7 +50,7 @@ defmodule FaktoryWorker.Telemetry do
   end
 
   defp log_event(:beat, %{status: :error}, %{wid: wid}) do
-    log_info("Heartbeat Failed", wid)
+    log_warn("Heartbeat Failed", wid)
   end
 
   # Fetch events
@@ -66,17 +66,17 @@ defmodule FaktoryWorker.Telemetry do
   end
 
   defp log_event(:ack, %{status: :error}, job) do
-    log_info("Failed", job.jid, job.args, job.jobtype)
+    log_error("Failed", job.jid, job.args, job.jobtype)
   end
 
   # Failed acks
 
   defp log_event(:failed_ack, %{status: :ok}, job) do
-    log_info("Error sending 'ACK' acknowledgement to faktory", job.jid, job.args, job.jobtype)
+    log_warn("Error sending 'ACK' acknowledgement to faktory", job.jid, job.args, job.jobtype)
   end
 
   defp log_event(:failed_ack, %{status: :error}, job) do
-    log_info("Error sending 'FAIL' acknowledgement to faktory", job.jid, job.args, job.jobtype)
+    log_error("Error sending 'FAIL' acknowledgement to faktory", job.jid, job.args, job.jobtype)
   end
 
   # Log formats
@@ -92,4 +92,29 @@ defmodule FaktoryWorker.Telemetry do
   defp log_info(outcome, jid, args, worker_module) do
     log_info("#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
   end
+
+  def log_warn(message) do
+    Logger.warn("[faktory-worker] #{message}")
+  end
+
+  defp log_warn(outcome, wid) do
+    log_warn("#{outcome} wid-#{wid}")
+  end
+
+  defp log_warn(outcome, jid, args, worker_module) do
+    log_warn("#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
+  end
+
+  def log_error(message) do
+    Logger.error("[faktory-worker] #{message}")
+  end
+
+  defp log_error(outcome, wid) do
+    log_error("#{outcome} wid-#{wid}")
+  end
+
+  defp log_error(outcome, jid, args, worker_module) do
+    log_error("#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
+  end
+
 end
