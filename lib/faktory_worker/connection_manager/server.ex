@@ -3,6 +3,8 @@ defmodule FaktoryWorker.ConnectionManager.Server do
 
   use GenServer
 
+  require Logger
+
   alias FaktoryWorker.ConnectionManager
 
   @spec start_link(opts :: keyword()) :: {:ok, pid()} | :ignore | {:error, any()}
@@ -22,7 +24,10 @@ defmodule FaktoryWorker.ConnectionManager.Server do
   def send_command(connection_manager, {command_type, _} = command, timeout)
       when command_type in [:fetch, :push] do
     try do
-      GenServer.call(connection_manager, {:send_command, command}, timeout)
+      IO.puts("---- #{inspect connection_manager} #{command_type} -- #{inspect self()}")
+      r = GenServer.call(connection_manager, {:send_command, command}, timeout)
+#      IO.puts("---- response -- #{inspect r}")
+      r
     catch
       :exit, {:timeout, _} ->
         {:error, :timeout}
@@ -40,12 +45,27 @@ defmodule FaktoryWorker.ConnectionManager.Server do
 
   @impl true
   def handle_call({:send_command, command}, _, state) do
+    IO.puts("---- SERVER -- #{inspect self()}")
     {result, state} = ConnectionManager.send_command(state, command)
     {:reply, result, state}
   end
 
   @impl true
   def handle_info({:ssl_closed, _}, state) do
+    Logger.info "!!!!!!!!!!!!!!!!!! ssl closed"
     {:stop, :normal, %{state | conn: nil}}
   end
+
+  @impl true
+  def handle_info({:EXIT, _from, reason}, state) do
+    Logger.info "!!!!!!!!!!!!!!!!!! exiting"
+    {:stop, reason, state} # see GenServer docs for other return types
+  end
+
+  @impl true
+  def terminate(reason, state) do
+    Logger.info "!!!!!!!!!!!!!!!!!! terminating"
+    state
+  end
+
 end

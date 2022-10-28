@@ -31,6 +31,7 @@ defmodule FaktoryWorker.ConnectionManager do
         ) ::
           {Connection.response(), ConnectionManager.t()}
   def send_command(state, command, allow_retry \\ true) do
+#    IO.puts("---- CM -- #{inspect self()}")
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
         error = {:error, "Failed to connect to Faktory"}
@@ -55,6 +56,7 @@ defmodule FaktoryWorker.ConnectionManager do
   end
 
   defp try_send_command(%{conn: nil, opts: opts} = state, command) do
+        IO.puts("NO CONN - PID INSIDE CONNECTION MANAGER:: #{inspect self()}")
     case open_connection(opts) do
       nil ->
         {{:error, "Failed to connect to Faktory"}, state}
@@ -67,11 +69,15 @@ defmodule FaktoryWorker.ConnectionManager do
   end
 
   defp try_send_command(%{conn: connection} = state, command) do
+#    IO.puts("HAVE CONN - PID INSIDE CONNECTION MANAGER:: #{inspect self()}")
+    random_number = :rand.uniform(3000)
+#    Process.sleep(1500 + random_number)
     result = Connection.send_command(connection, command)
     {result, state}
   end
 
   defp open_connection(opts) do
+    IO.puts("I AM OPENING CONNECTION")
     case Connection.open(opts) do
       {:ok, connection} -> connection
       {:error, _reason} -> nil

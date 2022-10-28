@@ -32,20 +32,12 @@ defmodule FaktoryWorker do
   def child_spec(opts \\ []) do
     opts = Keyword.put_new(opts, :name, __MODULE__)
 
-    children =
-      if opts[:sandbox] do
-        [
-          {FaktoryWorker.JobSupervisor, opts},
-          {FaktoryWorker.Sandbox, opts}
-        ]
-      else
-        [
-          {FaktoryWorker.QueueManager, opts},
-          {FaktoryWorker.Pool, opts},
-          {FaktoryWorker.JobSupervisor, opts},
-          {FaktoryWorker.WorkerSupervisor, opts}
-        ]
-      end
+    children = [
+      {FaktoryWorker.QueueManager, opts},
+      {FaktoryWorker.Pool, opts},
+      {FaktoryWorker.JobSupervisor, opts},
+      {FaktoryWorker.WorkerSupervisor, opts}
+    ]
 
     %{
       id: opts[:name],

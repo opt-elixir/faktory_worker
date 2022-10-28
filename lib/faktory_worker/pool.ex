@@ -11,8 +11,8 @@ defmodule FaktoryWorker.Pool do
       [
         {:name, {:local, pool_name}},
         {:worker_module, FaktoryWorker.ConnectionManager.Server},
-        {:size, Keyword.get(pool_config, :size, 10)},
-        {:max_overflow, Keyword.get(pool_config, :size, 10)}
+        {:size, 1},
+        {:max_overflow, 0}
       ],
       Keyword.get(opts, :connection, [])
     )

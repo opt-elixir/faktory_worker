@@ -15,7 +15,7 @@ defmodule FaktoryWorker.Worker.Pool do
 
     children = Enum.map(1..size, fn i -> map_connection(i, opts) end)
 
-    Supervisor.init(children, strategy: :one_for_one)
+    Supervisor.init([], strategy: :one_for_one)
   end
 
   defp map_connection(number, opts) do
