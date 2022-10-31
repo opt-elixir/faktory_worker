@@ -31,6 +31,11 @@ defmodule FaktoryWorker.Socket.Tcp do
     result
   end
 
+  @impl true
+  def close(%{socket: socket}) do
+    :gen_tcp.close(socket)
+  end
+
   defp try_connect(host, port) do
     host = String.to_charlist(host)
 

@@ -33,6 +33,8 @@ defmodule FaktoryWorker.ConnectionManager do
   def send_command(state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
       {{:error, reason}, _} when reason in @connection_errors ->
+        # Close dangling port
+        close_connection(state)
         error = {:error, "Failed to connect to Faktory"}
         state = %{state | conn: nil}
 
@@ -76,6 +78,10 @@ defmodule FaktoryWorker.ConnectionManager do
       {:ok, connection} -> connection
       {:error, _reason} -> nil
     end
+  end
+
+  defp close_connection(%{conn: conn}) do
+    Connection.close(conn)
   end
 
   defp log_error(reason, {_, %{jid: jid}}) do

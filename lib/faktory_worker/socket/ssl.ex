@@ -31,6 +31,11 @@ defmodule FaktoryWorker.Socket.Ssl do
     result
   end
 
+  @impl true
+  def close(%{socket: socket}) do
+    :ssl.close(socket)
+  end
+
   defp try_connect(host, port, opts) do
     host = String.to_charlist(host)
     tls_verify = Keyword.get(opts, :tls_verify, true)

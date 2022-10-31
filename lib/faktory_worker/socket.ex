@@ -13,4 +13,6 @@ defmodule FaktoryWorker.Socket do
 
   @callback recv(connection :: Connection.t(), length :: pos_integer()) ::
               {:ok, String.t()} | {:error, term()}
+
+  @callback close(connection :: Connection.t()) :: :ok
 end

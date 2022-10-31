@@ -120,5 +120,4 @@ defmodule FaktoryWorker.Telemetry do
   defp log_error(outcome, jid, args, worker_module) do
     log_error("#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
   end
-
 end

@@ -26,6 +26,11 @@ defmodule FaktoryWorker.Connection do
     end
   end
 
+  @spec close(conn :: __MODULE__.t()) :: :ok
+  def close(%{socket_handler: socket_handler} = conn) do
+    socket_handler.close(conn)
+  end
+
   @spec send_command(connection :: __MODULE__.t(), Protocol.protocol_command()) :: response()
   def send_command(%{socket_handler: socket_handler} = connection, :end) do
     with {:ok, payload} <- Protocol.encode_command(:end),
@@ -74,9 +79,7 @@ defmodule FaktoryWorker.Connection do
 
   defp send_handshake({:ok, %{"v" => version}}, _, _) when version != @faktory_version do
     {:error,
-     "Only Faktory version '#{@faktory_version}' is supported (connected to Faktory version '#{
-       version
-     }')."}
+     "Only Faktory version '#{@faktory_version}' is supported (connected to Faktory version '#{version}')."}
   end
 
   defp send_handshake({:ok, response}, connection, opts) do
