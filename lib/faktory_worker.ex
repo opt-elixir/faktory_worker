@@ -24,6 +24,7 @@ defmodule FaktoryWorker do
   For a full list of configuration options see the [Configuration](configuration.html) documentation.
   """
 
+  require Logger
   alias FaktoryWorker.{ConnectionManager, Pool}
 
   @default_timeout 5_000
@@ -88,14 +89,20 @@ defmodule FaktoryWorker do
   - `timeout` how long to wait for a response, in ms (default: #{@default_timeout})
 
   """
-  @spec send_command(command(), [send_command_opt()]) :: FaktoryWorker.Connection.response()
+  @spec send_command(command(), [send_command_opt()]) :: FaktoryWorker.Connection.response() | {:error, :timeout}
   def send_command(command, opts \\ []) do
-    opts
-    |> Keyword.get(:faktory_name, __MODULE__)
-    |> Pool.format_pool_name()
-    |> :poolboy.transaction(
-      &ConnectionManager.Server.send_command(&1, command),
-      Keyword.get(opts, :timeout, @default_timeout)
-    )
+    try do
+      opts
+      |> Keyword.get(:faktory_name, __MODULE__)
+      |> Pool.format_pool_name()
+      |> :poolboy.transaction(
+        &ConnectionManager.Server.send_command(&1, command),
+        Keyword.get(opts, :timeout, @default_timeout)
+      )
+    catch
+      :exit, error ->
+        Logger.error(inspect(error))
+        {:error, :timeout}
+    end
   end
 end
