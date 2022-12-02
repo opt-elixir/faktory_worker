@@ -152,4 +152,15 @@ defmodule FaktoryWorker.Sandbox do
     jobs = Map.update(state.jobs, worker_mod, %{}, fn _ -> %{} end)
     {:reply, :ok, %{state | jobs: jobs}}
   end
+
+  def batch_id, do: "sandbox-batch-id"
+
+  def batch_status, do: %{
+    "bid" => batch_id(),
+    "total" => 10,
+    "pending" => 14,
+    "failed" => 3,
+    "created_at" =>  "2019-11-18T13:48:25Z",
+    "description" => "This is a sandbox status"
+  }
 end
