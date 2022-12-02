@@ -49,6 +49,7 @@ defmodule FaktoryWorker.Batch do
 
   """
   alias FaktoryWorker.Job
+  alias FaktoryWorker.Sandbox
 
   @type bid :: String.t()
 
@@ -99,21 +100,26 @@ defmodule FaktoryWorker.Batch do
   """
   @spec new!(Keyword.t()) :: {:ok, bid()} | {:error, any()}
   def new!(opts \\ []) do
-    success = Keyword.get(opts, :on_success)
-    complete = Keyword.get(opts, :on_complete)
-    bid = Keyword.get(opts, :parent_bid)
-    description = Keyword.get(opts, :description)
+    if Sandbox.active?() do
+      {:ok, Sandbox.batch_id}
+    else
+      success = Keyword.get(opts, :on_success)
+      complete = Keyword.get(opts, :on_complete)
+      bid = Keyword.get(opts, :parent_bid)
+      description = Keyword.get(opts, :description)
 
-    payload =
-      %{}
-      |> maybe_put_description(description)
-      |> maybe_put_parent_bid(bid)
-      |> maybe_put_callback(:success, success)
-      |> maybe_put_callback(:complete, complete)
-      |> validate!()
+      payload =
+        %{}
+        |> maybe_put_description(description)
+        |> maybe_put_parent_bid(bid)
+        |> maybe_put_callback(:success, success)
+        |> maybe_put_callback(:complete, complete)
+        |> validate!()
 
-    opts = Keyword.take(opts, [:faktory_name, :timeout])
-    FaktoryWorker.send_command({:batch_new, payload}, opts)
+      opts = Keyword.take(opts, [:faktory_name, :timeout])
+      FaktoryWorker.send_command({:batch_new, payload}, opts)
+
+    end
   end
 
   @doc """
@@ -123,7 +129,11 @@ defmodule FaktoryWorker.Batch do
   is committed, but
   """
   def commit(bid, opts \\ []) do
-    FaktoryWorker.send_command({:batch_commit, bid}, opts)
+    if Sandbox.active?() do
+      {:ok, :no_content}
+    else
+      FaktoryWorker.send_command({:batch_commit, bid}, opts)
+    end
   end
 
   @doc """
@@ -135,7 +145,11 @@ defmodule FaktoryWorker.Batch do
   After opening the batch, it must be committed again using `commit/2`.
   """
   def open(bid, opts \\ []) do
-    FaktoryWorker.send_command({:batch_open, bid}, opts)
+    if Sandbox.active?() do
+      {:ok, :no_content}
+    else
+      FaktoryWorker.send_command({:batch_open, bid}, opts)
+    end
   end
 
   @doc """
@@ -144,7 +158,12 @@ defmodule FaktoryWorker.Batch do
   Returns a map representing the status
   """
   def status(bid, opts \\ []) do
-    FaktoryWorker.send_command({:batch_status, bid}, opts)
+    if Sandbox.active?() do
+      {:ok, Sandbox.batch_status()}
+    else
+      FaktoryWorker.send_command({:batch_status, bid}, opts)
+    end
+
   end
 
   defp maybe_put_description(payload, nil), do: payload
