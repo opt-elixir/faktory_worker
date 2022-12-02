@@ -1,3 +1,9 @@
+## 1.9.3 - 2022-12-02
+
+###Fixes
+
+- Add ability to test code that contains faktory batches by returning default values for these rather than crashing/timing out
+
 ## [1.9.2] - 2022-10-31
 
 ### Fixes
