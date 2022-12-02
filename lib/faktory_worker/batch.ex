@@ -48,7 +48,8 @@ defmodule FaktoryWorker.Batch do
   ```
 
   """
-  alias FaktoryWorker.{Job, Sandbox}
+  alias FaktoryWorker.Job
+  alias FaktoryWorker.Sandbox
 
   @type bid :: String.t()
 
