@@ -43,6 +43,6 @@ defmodule FaktoryWorker.FaktoryTestHelpers do
     Process.sleep(50)
     {:ok, connection} = FaktoryWorker.Connection.open()
 
-    {:ok, info} = FaktoryWorker.Connection.send_command(connection, {:batch_status, bid})
+    {:ok, _info} = FaktoryWorker.Connection.send_command(connection, {:batch_status, bid})
   end
 end
