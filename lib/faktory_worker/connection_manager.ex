@@ -32,14 +32,14 @@ defmodule FaktoryWorker.ConnectionManager do
           {Connection.response(), ConnectionManager.t()}
   def send_command(state, command, allow_retry \\ true) do
     case try_send_command(state, command) do
-      {{:error, reason}, _} when reason in @connection_errors ->
+      {{:error, reason}, state} when reason in @connection_errors ->
         # Close dangling port
         close_connection(state)
         error = {:error, "Failed to connect to Faktory"}
         state = %{state | conn: nil}
 
         if allow_retry,
-          do: send_command(%{state | conn: nil}, command, false),
+          do: send_command(state, command, false),
           else: {error, state}
 
       # Handle errors from Faktory that should not be tried again
