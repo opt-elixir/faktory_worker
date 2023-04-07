@@ -84,6 +84,12 @@ defmodule FaktoryWorker.Worker do
 
   @spec stop_job(state :: __MODULE__.t()) :: __MODULE__.t()
   def stop_job(%{job_ref: job_ref} = state) when job_ref != nil do
+    Telemetry.execute(:job_timeout, {:error, :job_timeout}, %{
+      jid: state.job_id,
+      args: state.job["args"],
+      jobtype: state.job["jobtype"]
+    })
+
     state
     |> job_supervisor_name()
     |> Task.Supervisor.terminate_child(job_ref.pid)

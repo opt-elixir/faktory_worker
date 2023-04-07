@@ -3,7 +3,7 @@ defmodule FaktoryWorker.Telemetry do
 
   require Logger
 
-  @events [:push, :beat, :fetch, :ack, :failed_ack, :batch_new, :batch_open, :batch_commit]
+  @events [:push, :beat, :fetch, :ack, :failed_ack, :job_timeout, :batch_new, :batch_open, :batch_commit]
 
   @doc false
   @spec attach_default_handler :: :ok | {:error, :already_exists}
@@ -81,6 +81,12 @@ defmodule FaktoryWorker.Telemetry do
 
   defp log_event(:failed_ack, %{status: :error}, job) do
     log_error("Error sending 'FAIL' acknowledgement to faktory", job.jid, job.args, job.jobtype)
+  end
+
+  # Misc events
+
+  defp log_event(:job_timeout, _, job) do
+    log_error("Job has reached its reservation timeout and will be failed", job.jid, job.args, job.jobtype)
   end
 
   # Log formats

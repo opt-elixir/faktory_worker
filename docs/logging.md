@@ -71,3 +71,13 @@ The available status outcomes are.
 The `metadata` supplied with this event is a map containing the following fields.
 - `wid` - A worker identifier that can be used to identify which worker emitted this event.
 - `prev_status` - The `status` that was emitted on the previous `beat` event. This is useful for tracking when the status has changed between heartbeats.
+
+## Job Timeout Event
+
+Event Name: `[:faktory_worker, :job_timeout]`.
+
+The job timeout event is emitted 20 seconds prior to a job's reservation deadline. This 20-second window allows the job to be terminated before Faktory can expire and retry the job on the server.
+
+The `status` status provided for this event will always be `{:error, :job_timeout}`.
+
+The `metadata` supplied with this event is a map containing the job's ID, arguments, and type.
