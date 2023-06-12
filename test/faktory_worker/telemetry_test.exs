@@ -240,5 +240,23 @@ defmodule FaktoryWorker.TelemetryTest do
                  metadata.jobtype
                }) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
+
+    test "should log job timeouts" do
+      metadata = %{
+        jid: Random.job_id(),
+        args: %{hey: "there!"},
+        jobtype: "TestQueueWorker"
+      }
+
+      log_message =
+        capture_log(fn ->
+          Telemetry.handle_event([:faktory_worker, :job_timeout], nil, metadata, [])
+        end)
+
+      assert log_message =~
+               "[faktory-worker] Job has reached its reservation timeout and will be failed (#{
+                 metadata.jobtype
+               }) jid-#{metadata.jid} #{inspect(metadata.args)}"
+    end
   end
 end
