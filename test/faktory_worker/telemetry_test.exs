@@ -70,9 +70,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Enqueued (#{metadata.jobtype}) jid-#{metadata.jid} #{
-                 inspect(metadata.args)
-               }"
+               "[faktory-worker] Enqueued (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log a not unique job event" do
@@ -90,9 +88,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] NOTUNIQUE (#{metadata.jobtype}) jid-#{metadata.jid} #{
-                 inspect(metadata.args)
-               }"
+               "[faktory-worker] NOTUNIQUE (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log a successful beat when the previous beat failed" do
@@ -156,9 +152,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{
-                 metadata.wid
-               }"
+               "[faktory-worker] Failed to fetch job due to 'Shutdown in progress' wid-#{metadata.wid}"
     end
 
     test "should log a successful job ack event" do
@@ -167,7 +161,9 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        duration: 32_400,
+        queue: "default"
       }
 
       log_message =
@@ -176,9 +172,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Succeeded (#{metadata.jobtype}) jid-#{metadata.jid} #{
-                 inspect(metadata.args)
-               }"
+               "[faktory-worker] Succeeded after 32.4s (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log a failed job ack event" do
@@ -187,7 +181,9 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        duration: 1_000,
+        queue: "default"
       }
 
       log_message =
@@ -196,9 +192,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Failed (#{metadata.jobtype}) jid-#{metadata.jid} #{
-                 inspect(metadata.args)
-               }"
+               "[faktory-worker] Failed after 1.0s (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log a failed 'ACK' ack event" do
@@ -207,7 +201,8 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        queue: "default"
       }
 
       log_message =
@@ -216,9 +211,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Error sending 'ACK' acknowledgement to faktory (#{
-                 metadata.jobtype
-               }) jid-#{metadata.jid} #{inspect(metadata.args)}"
+               "[faktory-worker] Error sending 'ACK' acknowledgement to faktory (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log a failed 'FAIL' ack event" do
@@ -227,7 +220,8 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        queue: "default"
       }
 
       log_message =
@@ -236,16 +230,35 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Error sending 'FAIL' acknowledgement to faktory (#{
-                 metadata.jobtype
-               }) jid-#{metadata.jid} #{inspect(metadata.args)}"
+               "[faktory-worker] Error sending 'FAIL' acknowledgement to faktory (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
+    end
+
+    test "should include the queue name when not `default`" do
+      outcome = %{status: :ok}
+
+      metadata = %{
+        jid: Random.job_id(),
+        args: %{hey: "there!"},
+        jobtype: "TestQueueWorker",
+        duration: 2_300,
+        queue: "queue"
+      }
+
+      log_message =
+        capture_log(fn ->
+          Telemetry.handle_event([:faktory_worker, :ack], outcome, metadata, [])
+        end)
+
+      assert log_message =~
+               "[faktory-worker] Succeeded after 2.3s (#{metadata.jobtype}) [#{metadata.queue}] jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
 
     test "should log job timeouts" do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        queue: "default"
       }
 
       log_message =
@@ -254,9 +267,7 @@ defmodule FaktoryWorker.TelemetryTest do
         end)
 
       assert log_message =~
-               "[faktory-worker] Job has reached its reservation timeout and will be failed (#{
-                 metadata.jobtype
-               }) jid-#{metadata.jid} #{inspect(metadata.args)}"
+               "[faktory-worker] Job has reached its reservation timeout and will be failed (#{metadata.jobtype}) jid-#{metadata.jid} #{inspect(metadata.args)}"
     end
   end
 end
