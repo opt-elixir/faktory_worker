@@ -61,7 +61,8 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        queue: "default"
       }
 
       log_message =
@@ -79,7 +80,8 @@ defmodule FaktoryWorker.TelemetryTest do
       metadata = %{
         jid: Random.job_id(),
         args: %{hey: "there!"},
-        jobtype: "TestQueueWorker"
+        jobtype: "TestQueueWorker",
+        queue: "default"
       }
 
       log_message =

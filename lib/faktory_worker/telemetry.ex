@@ -41,15 +41,15 @@ defmodule FaktoryWorker.Telemetry do
   # Push events
 
   defp log_event(:push, %{status: :ok}, job) do
-    log(:info, "Enqueued", job.jid, job.args, job.jobtype, job[:queue])
+    log(:info, "Enqueued", job.jid, job.args, job.jobtype, job.queue)
   end
 
   defp log_event(:push, %{status: {:error, :not_unique}}, job) do
-    log(:warn, "NOTUNIQUE", job.jid, job.args, job.jobtype, job[:queue])
+    log(:warn, "NOTUNIQUE", job.jid, job.args, job.jobtype, job.queue)
   end
 
   defp log_event(:push, %{status: {:error, :timeout}}, job) do
-    log(:info, "Push Timeout", job.jid, job.args, job.jobtype, job[:queue])
+    log(:info, "Push Timeout", job.jid, job.args, job.jobtype, job.queue)
   end
 
   # Beat events
@@ -132,7 +132,7 @@ defmodule FaktoryWorker.Telemetry do
     log(level, "#{outcome} wid-#{wid}")
   end
 
-  defp log(level, outcome, jid, args, worker_module, default) when default in ["default", nil] do
+  defp log(level, outcome, jid, args, worker_module, "default") do
     log(level, "#{outcome} (#{worker_module}) jid-#{jid} #{inspect(args)}")
   end
 
