@@ -197,13 +197,13 @@ defmodule FaktoryWorker.Job do
   end
 
   defp handle_push_result({:ok, _}, job) do
-    Telemetry.execute(:push, :ok, job)
+    Telemetry.execute(:push, :ok, Map.put_new(job, :queue, "default"))
 
     {:ok, job}
   end
 
   defp handle_push_result({:error, :timeout}, job) do
-    Telemetry.execute(:push, {:error, :timeout}, job)
+    Telemetry.execute(:push, {:error, :timeout}, Map.put_new(job, :queue, "default"))
 
     {:error, :timeout}
   end

@@ -27,6 +27,7 @@ defmodule FaktoryWorker.Worker do
     :job_id,
     :job,
     :job_timeout_ref,
+    :job_start,
     :retry_interval
   ]
 
@@ -87,7 +88,8 @@ defmodule FaktoryWorker.Worker do
     Telemetry.execute(:job_timeout, {:error, :job_timeout}, %{
       jid: state.job_id,
       args: state.job["args"],
-      jobtype: state.job["jobtype"]
+      jobtype: state.job["jobtype"],
+      queue: state.job["queue"]
     })
 
     state
@@ -135,6 +137,7 @@ defmodule FaktoryWorker.Worker do
       |> String.split(".")
       |> Module.safe_concat()
 
+    job_start = System.monotonic_time(:millisecond)
     job_ref = JobSupervisor.async_nolink(job_supervisor, job_module, job["args"])
 
     reserve_for_seconds = Map.get(job, "reserve_for", @faktory_default_reserve_for)
@@ -145,6 +148,7 @@ defmodule FaktoryWorker.Worker do
       state
       | worker_state: :running_job,
         job_timeout_ref: timeout_ref,
+        job_start: job_start,
         job_ref: job_ref,
         job_id: job["jid"],
         job: job
@@ -187,7 +191,9 @@ defmodule FaktoryWorker.Worker do
     Telemetry.execute(:ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
-      jobtype: state.job["jobtype"]
+      jobtype: state.job["jobtype"],
+      queue: state.job["queue"],
+      duration: System.monotonic_time(:millisecond) - state.job_start
     })
 
     cancel_timer(state.job_timeout_ref)
@@ -197,6 +203,7 @@ defmodule FaktoryWorker.Worker do
       | worker_state: :ok,
         queues: nil,
         job_timeout_ref: nil,
+        job_start: nil,
         job_ref: nil,
         job_id: nil,
         job: nil
@@ -207,7 +214,9 @@ defmodule FaktoryWorker.Worker do
     Telemetry.execute(:failed_ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
-      jobtype: state.job["jobtype"]
+      jobtype: state.job["jobtype"],
+      queue: state.job["queue"],
+      duration: System.monotonic_time(:millisecond) - state.job_start
     })
 
     cancel_timer(state.job_timeout_ref)
@@ -217,6 +226,7 @@ defmodule FaktoryWorker.Worker do
       | worker_state: :ok,
         queues: nil,
         job_timeout_ref: nil,
+        job_start: nil,
         job_ref: nil,
         job_id: nil,
         job: nil
