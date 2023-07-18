@@ -1,3 +1,8 @@
+## 1.9.3 - 2023-07-18
+
+### Updates
+
+- adds queue and duration to relevant push/ack telemetry events, allowing improved observability around how long jobs take to complete and allowing telemetry events to be aggregated by queue in addition to job type. Logger messages now also include the queue (when it's anything other than default) and job duration in the case of either success or failure. ([#184](https://github.com/opt-elixir/faktory_worker/pull/185))
 ## 1.9.3 - 2022-12-02
 
 ###Fixes
