@@ -188,9 +188,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       Process.sleep(100)
 
-      state = :sys.get_state(pid)
-      state = Server.terminate(:shutdown, state)
-      :sys.replace_state(pid, fn _ -> state end)
+      stop_supervised!(:test_worker_1)
     end
   end
 
