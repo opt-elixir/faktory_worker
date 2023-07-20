@@ -80,6 +80,10 @@ defmodule FaktoryWorker.Worker.Server do
   end
 
   @impl true
+  def terminate(_, state = %{job_ref: %{ref: job_ref}}) when is_reference(job_ref) do
+    Worker.ack_job(state, {:error, "Worker Terminated"})
+  end
+
   def terminate(_, state) do
     Worker.checkin_queues(state)
   end
