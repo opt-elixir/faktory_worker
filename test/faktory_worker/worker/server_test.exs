@@ -128,6 +128,68 @@ defmodule FaktoryWorker.Worker.ServerTest do
     test "should successfully terminate when queues is set to nil" do
       assert :ok == Server.terminate(:shutdown, %{faktory_name: FaktoryWorker, queues: nil})
     end
+
+    test "should send 'FAIL' command if a job is currently in progress" do
+      start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: [queues: ["default"]]})
+      start_supervised!({FaktoryWorker.JobSupervisor, name: FaktoryWorker})
+
+      job =
+        Jason.encode!(%{
+          "args" => [%{"hey" => "there!"}],
+          "created_at" => "2019-04-09T12:14:07.6550641Z",
+          "enqueued_at" => "2019-04-09T12:14:07.6550883Z",
+          "jid" => "f47ccc395ef9d9646118434f",
+          "jobtype" => "FaktoryWorker.TimeoutQueueWorker",
+          "queue" => "default"
+        })
+
+      fail_payload =
+        Jason.encode!(%{
+          backtrace: [],
+          errtype: "Undetected Error Type",
+          jid: "f47ccc395ef9d9646118434f",
+          message: "\"Worker Terminated\""
+        })
+
+      fail_command = "FAIL #{fail_payload}\r\n"
+
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH default\r\n" ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "$#{byte_size(job)}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _, _ ->
+        {:ok, "#{job}\r\n"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:ok, "+OK\r\n"}
+      end)
+
+      opts = [
+        name: :test_worker_1,
+        process_wid: Random.process_wid(),
+        disable_fetch: true,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(Server.child_spec(opts))
+
+      Process.send(pid, :fetch, [])
+
+      Process.sleep(100)
+
+      stop_supervised!(:test_worker_1)
+    end
   end
 
   describe "job timeout" do
