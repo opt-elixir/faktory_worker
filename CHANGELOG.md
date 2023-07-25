@@ -1,11 +1,20 @@
-## 1.9.3 - 2023-07-18
+## 1.9.5 - 2023-07-25
+
+- acks running jobs whenever a worker is terminated, as successful via `ACK` if
+  the job just completed, or as failed via `FAIL` if the job was incomplete;
+  this should fix the issue in continuous deployment environments when a
+  deployment is terminated and replaced by a newer instance where any in-progress
+  jobs are left hanging ([#186](https://github.com/opt-elixir/faktory_worker/pull/186))
+
+## 1.9.4 - 2023-07-18
 
 ### Updates
 
 - adds queue and duration to relevant push/ack telemetry events, allowing improved observability around how long jobs take to complete and allowing telemetry events to be aggregated by queue in addition to job type. Logger messages now also include the queue (when it's anything other than default) and job duration in the case of either success or failure. ([#184](https://github.com/opt-elixir/faktory_worker/pull/185))
+
 ## 1.9.3 - 2022-12-02
 
-###Fixes
+### Fixes
 
 - Add ability to test code that contains faktory batches by returning default values for these rather than crashing/timing out
 
