@@ -146,12 +146,12 @@ defmodule FaktoryWorker.Worker do
 
     %{
       state
-      | worker_state: :running_job,
-        job_timeout_ref: timeout_ref,
-        job_start: job_start,
-        job_ref: job_ref,
-        job_id: job["jid"],
-        job: job
+    | worker_state: :running_job,
+      job_timeout_ref: timeout_ref,
+      job_start: job_start,
+      job_ref: job_ref,
+      job_id: job["jid"],
+      job: job
     }
   end
 
@@ -200,13 +200,13 @@ defmodule FaktoryWorker.Worker do
 
     schedule_fetch(%{
       state
-      | worker_state: :ok,
-        queues: nil,
-        job_timeout_ref: nil,
-        job_start: nil,
-        job_ref: nil,
-        job_id: nil,
-        job: nil
+    | worker_state: :ok,
+      queues: nil,
+      job_timeout_ref: nil,
+      job_start: nil,
+      job_ref: nil,
+      job_id: nil,
+      job: nil
     })
   end
 
@@ -223,18 +223,21 @@ defmodule FaktoryWorker.Worker do
 
     schedule_fetch(%{
       state
-      | worker_state: :ok,
-        queues: nil,
-        job_timeout_ref: nil,
-        job_start: nil,
-        job_ref: nil,
-        job_id: nil,
-        job: nil
+    | worker_state: :ok,
+      queues: nil,
+      job_timeout_ref: nil,
+      job_start: nil,
+      job_ref: nil,
+      job_id: nil,
+      job: nil
     })
   end
 
   defp checkout_queues(%{queues: nil} = state) do
-    QueueManager.checkout_queues(queue_manager_name(state))
+    state
+    |> queue_manager_name
+    |> QueueManager.checkout_queues()
+    |> Enum.shuffle()
   end
 
   defp checkout_queues(%{queues: queues}), do: queues
