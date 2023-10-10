@@ -93,11 +93,6 @@ defmodule FaktoryWorker.QueueManager do
 
   defp calc_concurrency_per_worker(pool_size, queues) do
     sum_max_concurrency = queues |> Enum.map(& &1.max_concurrency) |> Enum.sum()
-    queues_per_worker = round(sum_max_concurrency / pool_size)
-
-    case queues_per_worker < 1 do
-      true -> 1
-      false -> queues_per_worker
-    end
+    ceil(sum_max_concurrency / pool_size)
   end
 end
