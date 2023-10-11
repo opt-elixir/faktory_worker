@@ -1,3 +1,12 @@
+## 1.9.6 - 2023-07-25
+- fix queue distribution [#195](https://github.com/opt-elixir/faktory_worker/pull/195)
+- Bump mox from 1.0.2 to 1.1.0 dependencies [#193](https://github.com/opt-elixir/faktory_worker/pull/193)
+- Bump ex_doc from 0.29.4 to 0.30.6 dependencies [#192](https://github.com/opt-elixir/faktory_worker/pull/192)
+- Bump excoveralls from 0.14.6 to 0.17.1 dependencies [#192](https://github.com/opt-elixir/faktory_worker/pull/191)
+- Bump jason from 1.4.0 to 1.4.1 dependencies [#189](https://github.com/opt-elixir/faktory_worker/pull/189)
+- Bump ex_doc from 0.29.4 to 0.30.3 dependencies [#188](https://github.com/opt-elixir/faktory_worker/pull/188)
+
+  
 ## 1.9.5 - 2023-07-25
 
 - acks running jobs whenever a worker is terminated, as successful via `ACK` if
