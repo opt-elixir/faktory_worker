@@ -32,7 +32,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
                id: :test_worker_1,
                start:
                  {FaktoryWorker.Worker.Server, :start_link,
-                  [[name: :test_worker_1, connection: [port: 7000]]]},
+                 [[name: :test_worker_1, connection: [port: 7000]]]},
                type: :worker
              }
     end
@@ -115,11 +115,11 @@ defmodule FaktoryWorker.Worker.ServerTest do
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
       state = %{faktory_name: FaktoryWorker, queues: QueueManager.checkout_queues(pid)}
-      manager_state_before = :sys.get_state(pid)
+      {_, manager_state_before} = :sys.get_state(pid)
 
       Server.terminate(:shutdown, state)
 
-      manager_state_after = :sys.get_state(pid)
+      {_, manager_state_after} = :sys.get_state(pid)
 
       assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 0}]
       assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]

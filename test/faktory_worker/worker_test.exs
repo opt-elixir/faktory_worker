@@ -988,11 +988,11 @@ defmodule FaktoryWorker.WorkerTest do
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
       state = %{faktory_name: FaktoryWorker, queues: QueueManager.checkout_queues(pid)}
-      manager_state_before = :sys.get_state(pid)
+      {_, manager_state_before} = :sys.get_state(pid)
 
       Worker.checkin_queues(state)
 
-      manager_state_after = :sys.get_state(pid)
+      {_, manager_state_after} = :sys.get_state(pid)
 
       assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 0}]
       assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
@@ -1004,11 +1004,11 @@ defmodule FaktoryWorker.WorkerTest do
       pid = start_supervised!({QueueManager, name: FaktoryWorker, worker_pool: worker_pool})
 
       state = %{faktory_name: FaktoryWorker, queues: nil}
-      manager_state_before = :sys.get_state(pid)
+      {_, manager_state_before} = :sys.get_state(pid)
 
       :ok = Worker.checkin_queues(state)
 
-      manager_state_after = :sys.get_state(pid)
+      {_, manager_state_after} = :sys.get_state(pid)
 
       assert manager_state_before == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
       assert manager_state_after == [%QueueManager.Queue{name: "test_queue", max_concurrency: 1}]
