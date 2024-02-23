@@ -193,7 +193,17 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue default\r\n" ->
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH " <> msg ->
+        assert String.ends_with?(msg, "\r\n")
+
+        sorted_queues =
+          msg
+          |> String.trim("\r\n")
+          |> String.split(" ")
+          |> Enum.sort()
+
+        assert sorted_queues == ["default", "test_queue"]
+
         :ok
       end)
 
@@ -245,7 +255,7 @@ defmodule FaktoryWorker.WorkerTest do
 
       state = Worker.send_fetch(state)
 
-      assert state.queues == ["test_queue", "default"]
+      assert Enum.sort(state.queues) == Enum.sort(["test_queue", "default"])
     end
   end
 
@@ -264,6 +274,7 @@ defmodule FaktoryWorker.WorkerTest do
       |> Map.put(:job_id, "f47ccc395ef9d9646118434f")
       |> Map.put(:job, %{"jid" => "f47ccc395ef9d9646118434f"})
       |> Map.put(:job_timeout_ref, :erlang.make_ref())
+      |> Map.put(:job_start, System.monotonic_time(:millisecond))
     end
 
     test "should stop the job process" do
@@ -423,7 +434,8 @@ defmodule FaktoryWorker.WorkerTest do
         job_timeout_ref: nil,
         job_ref: nil,
         job_id: nil,
-        job: nil
+        job: nil,
+        job_start: nil
       }
 
       new_state = Worker.handle_fetch_response({:ok, job}, state)
@@ -519,6 +531,7 @@ defmodule FaktoryWorker.WorkerTest do
       |> Map.put(:job_ref, :erlang.make_ref())
       |> Map.put(:job, job)
       |> Map.put(:worker_state, :running_job)
+      |> Map.put(:job_start, System.monotonic_time(:millisecond))
     end
 
     test "should send a successful 'ACK' to faktory" do
@@ -598,11 +611,11 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {[:faktory_worker, :ack], outcome, metadata}
       assert outcome == %{status: :ok}
 
-      assert metadata == %{
-               jid: job_id,
+      assert %{
+               jid: ^job_id,
                args: [%{"hey" => "there!"}],
                jobtype: "FaktoryWorker.TestQueueWorker"
-             }
+             } = metadata
 
       detach_event_handler(event_handler_id)
     end
@@ -729,11 +742,13 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {[:faktory_worker, :ack], outcome, metadata}
       assert outcome == %{status: :error}
 
-      assert metadata == %{
-               jid: job_id,
+      assert %{
+               jid: ^job_id,
                args: [%{"hey" => "there!"}],
-               jobtype: "FaktoryWorker.TestQueueWorker"
-             }
+               jobtype: "FaktoryWorker.TestQueueWorker",
+               queue: "test_queue",
+               duration: _
+             } = metadata
 
       detach_event_handler(event_handler_id)
     end
@@ -800,6 +815,7 @@ defmodule FaktoryWorker.WorkerTest do
         {:error, :closed}
       end)
 
+      expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
       # the connection manager retries a failed request once
       worker_connection_mox()
 
@@ -825,11 +841,11 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {[:faktory_worker, :failed_ack], outcome, metadata}
       assert outcome == %{status: :ok}
 
-      assert metadata == %{
-               jid: job_id,
+      assert %{
+               jid: ^job_id,
                args: [%{"hey" => "there!"}],
                jobtype: "FaktoryWorker.TestQueueWorker"
-             }
+             } = metadata
 
       assert_receive :fetch
 
@@ -866,6 +882,8 @@ defmodule FaktoryWorker.WorkerTest do
         {:error, :closed}
       end)
 
+      expect(FaktoryWorker.SocketMock, :close, fn conn -> conn end)
+
       # the connection manager retries a failed request one more time
       worker_connection_mox()
 
@@ -891,11 +909,11 @@ defmodule FaktoryWorker.WorkerTest do
       assert_receive {[:faktory_worker, :failed_ack], outcome, metadata}
       assert outcome == %{status: :error}
 
-      assert metadata == %{
-               jid: job_id,
+      assert %{
+               jid: ^job_id,
                args: [%{"hey" => "there!"}],
                jobtype: "FaktoryWorker.TestQueueWorker"
-             }
+             } = metadata
 
       assert_receive :fetch
 

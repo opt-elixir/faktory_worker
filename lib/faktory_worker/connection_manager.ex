@@ -80,9 +80,11 @@ defmodule FaktoryWorker.ConnectionManager do
     end
   end
 
-  defp close_connection(%{conn: conn}) do
+  defp close_connection(%{conn: conn}) when not is_nil(conn) do
     Connection.close(conn)
   end
+
+  defp close_connection(%{conn: nil}), do: :ok
 
   defp log_error(reason, {_, %{jid: jid}}) do
     Logger.warn("[#{jid}] #{reason}")
