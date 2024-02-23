@@ -104,7 +104,8 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   defp handle_beat_response({{result, msg}, conn}, state) when result in [:ok, :error] do
-    Logger.info("[faktory-worker] unexpected heartbeat response #{inspect({result, msg})}")
+    if result != :ok,
+      do: Logger.info("[faktory-worker] unexpected heartbeat response #{inspect({result, msg})}")
 
     Telemetry.execute(:beat, result, %{
       prev_status: state.beat_state,
