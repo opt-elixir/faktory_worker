@@ -253,6 +253,8 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
         {:error, :econnrefused}
       end)
 
+      expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
+
       opts = [socket_handler: FaktoryWorker.SocketMock, is_worker: true, process_wid: process_wid]
 
       state = %{

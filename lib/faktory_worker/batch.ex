@@ -101,7 +101,7 @@ defmodule FaktoryWorker.Batch do
   @spec new!(Keyword.t()) :: {:ok, bid()} | {:error, any()}
   def new!(opts \\ []) do
     if Sandbox.active?() do
-      {:ok, Sandbox.batch_id}
+      {:ok, Sandbox.batch_id()}
     else
       success = Keyword.get(opts, :on_success)
       complete = Keyword.get(opts, :on_complete)
@@ -118,7 +118,6 @@ defmodule FaktoryWorker.Batch do
 
       opts = Keyword.take(opts, [:faktory_name, :timeout])
       FaktoryWorker.send_command({:batch_new, payload}, opts)
-
     end
   end
 
@@ -163,7 +162,6 @@ defmodule FaktoryWorker.Batch do
     else
       FaktoryWorker.send_command({:batch_status, bid}, opts)
     end
-
   end
 
   defp maybe_put_description(payload, nil), do: payload

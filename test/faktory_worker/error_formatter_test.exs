@@ -6,9 +6,9 @@ defmodule FaktoryWorker.ErrorFormatterTest do
 
   describe "format_error/2" do
     @stacktrace [
-      {TestApp.Worker, :raise_error, 1, [file: 'lib/worker.ex', line: 50]},
-      {TestApp.Worker, :do_work, 1, [file: 'lib/worker.ex', line: 37]},
-      {TestApp.Worker, :perform, 1, [file: 'lib/worker.ex', line: 9]}
+      {TestApp.Worker, :raise_error, 1, [file: ~c"lib/worker.ex", line: 50]},
+      {TestApp.Worker, :do_work, 1, [file: ~c"lib/worker.ex", line: 37]},
+      {TestApp.Worker, :perform, 1, [file: ~c"lib/worker.ex", line: 9]}
     ]
 
     @formatted_stacktrace [

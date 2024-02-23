@@ -32,7 +32,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
                id: :test_worker_1,
                start:
                  {FaktoryWorker.Worker.Server, :start_link,
-                 [[name: :test_worker_1, connection: [port: 7000]]]},
+                  [[name: :test_worker_1, connection: [port: 7000]]]},
                type: :worker
              }
     end
@@ -247,6 +247,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         state
         |> Map.put(:job_id, job_id)
         |> Map.put(:job_ref, %{ref: job_ref})
+        |> Map.put(:job_start, System.monotonic_time(:millisecond))
       end)
 
       Process.send(pid, {job_ref, :ok}, [])
@@ -289,6 +290,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       :sys.replace_state(pid, fn state ->
         state
+        |> Map.put(:job_start, System.monotonic_time(:millisecond))
         |> Map.put(:job_id, job_id)
         |> Map.put(:job, %{"jid" => job_id})
       end)

@@ -172,6 +172,8 @@ defmodule FaktoryWorker.ConnectionManagerTest do
         {:ok, "+OK\r\n"}
       end)
 
+      expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
+
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
       state = %ConnectionManager{

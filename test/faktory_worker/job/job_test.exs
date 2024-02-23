@@ -183,5 +183,4 @@ defmodule FaktoryWorker.Job.JobTest do
       assert error == "The field 'queue' has an invalid value '123'"
     end
   end
-
 end
