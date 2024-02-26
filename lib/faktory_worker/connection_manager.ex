@@ -87,6 +87,6 @@ defmodule FaktoryWorker.ConnectionManager do
   defp close_connection(%{conn: nil}), do: :ok
 
   defp log_error(reason, {_, %{jid: jid}}) do
-    Logger.warning("[#{jid}] #{reason}")
+    Logger.warning("[faktory-worker] [#{jid}] #{reason}")
   end
 end

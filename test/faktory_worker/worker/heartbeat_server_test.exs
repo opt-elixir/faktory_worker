@@ -379,5 +379,46 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
 
       :ok = stop_supervised(:test_heartbeat_server)
     end
+
+    test "should recover from error" do
+      worker_connection_mox()
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        {:error, "Failed to connect to Faktory"}
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "BEAT " <> _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :send, fn _, "END" <> _ ->
+        :ok
+      end)
+
+      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+        # return the terminate state here to prevent futher beat commands
+        {:ok, "+{\"state\": \"terminate\"}\r\n"}
+      end)
+
+      opts = [
+        name: :test,
+        process_wid: Random.process_wid(),
+        beat_interval: 1,
+        connection: [socket_handler: FaktoryWorker.SocketMock]
+      ]
+
+      pid = start_supervised!(HeartbeatServer.child_spec(opts))
+
+      %{beat_state: :ok} = :sys.get_state(pid)
+
+      # # sleep 5 milliseconds to allow both beats to occur
+      Process.sleep(5)
+
+      :ok = stop_supervised(:test_heartbeat_server)
+    end
   end
 end

@@ -60,7 +60,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
 
   @impl true
   def handle_info(:beat, %{conn: conn, process_wid: process_wid, beat_state: beat_state} = state)
-      when beat_state in [:ok, :quiet] do
+      when beat_state in [:ok, :quiet, :error] do
     state =
       conn
       |> ConnectionManager.send_command({:beat, process_wid})
@@ -70,6 +70,10 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   def handle_info(:beat, state) do
+    Logger.info(
+      "[faktory-worker] not sending heartbeat because the beat_state is #{inspect(state.beat_state)}"
+    )
+
     {:noreply, %{state | beat_ref: nil}, {:continue, :schedule_beat}}
   end
 
