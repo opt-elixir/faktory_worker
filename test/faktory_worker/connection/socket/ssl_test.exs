@@ -4,8 +4,8 @@ defmodule FaktoryWorker.Connection.Socket.SslTest do
   alias FaktoryWorker.Connection
   alias FaktoryWorker.Socket.Ssl
 
-  @tls_host Application.get_env(:faktory_worker, :tls_server)[:host]
-  @tls_port Application.get_env(:faktory_worker, :tls_server)[:port]
+  @tls_host Application.compile_env(:faktory_worker, :tls_server)[:host]
+  @tls_port Application.compile_env(:faktory_worker, :tls_server)[:port]
 
   describe "connect/3" do
     test "should open a ssl socket to faktory" do

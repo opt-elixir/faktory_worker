@@ -89,7 +89,8 @@ defmodule FaktoryWorker do
   - `timeout` how long to wait for a response, in ms (default: #{@default_timeout})
 
   """
-  @spec send_command(command(), [send_command_opt()]) :: FaktoryWorker.Connection.response() | {:error, :timeout}
+  @spec send_command(command(), [send_command_opt()]) ::
+          FaktoryWorker.Connection.response() | {:error, :timeout}
   def send_command(command, opts \\ []) do
     try do
       opts
@@ -101,7 +102,7 @@ defmodule FaktoryWorker do
       )
     catch
       :exit, error ->
-        Logger.error(inspect(error))
+        Logger.error("[faktory-worker] " <> inspect(error))
         {:error, :timeout}
     end
   end

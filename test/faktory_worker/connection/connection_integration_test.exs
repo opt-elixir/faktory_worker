@@ -3,8 +3,8 @@ defmodule FaktoryWorker.Connection.ConnectionIntegrationTest do
 
   alias FaktoryWorker.Connection
 
-  @passworded_connection_opts Application.get_env(:faktory_worker, :passworded_server)
-  @tls_connection_opts Application.get_env(:faktory_worker, :tls_server)
+  @passworded_connection_opts Application.compile_env(:faktory_worker, :passworded_server)
+  @tls_connection_opts Application.compile_env(:faktory_worker, :tls_server)
 
   describe "open/1" do
     test "should return a connection to faktory" do

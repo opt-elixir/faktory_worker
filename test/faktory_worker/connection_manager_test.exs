@@ -91,7 +91,8 @@ defmodule FaktoryWorker.ConnectionManagerTest do
                {{:ok, result}, _} = ConnectionManager.send_command(state, {:push, payload})
 
                assert result == "halt reason"
-             end) |> String.match?(~r/\[warn.*(?<!ing)\]*\[123456\]*[Halt: halt reason]/)
+             end)
+             |> String.match?(~r/\[warn.*(?<!ing)\]*\[123456\]*[Halt: halt reason]/)
     end
 
     test "should unset the connection when there is a socket failure" do
@@ -104,6 +105,8 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       expect(FaktoryWorker.SocketMock, :connect, fn _, _, _ ->
         {:error, :econnrefused}
       end)
+
+      expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
 
       opts = [socket_handler: FaktoryWorker.SocketMock]
       state = ConnectionManager.new(opts)
@@ -168,6 +171,8 @@ defmodule FaktoryWorker.ConnectionManagerTest do
       expect(FaktoryWorker.SocketMock, :recv, fn _ ->
         {:ok, "+OK\r\n"}
       end)
+
+      expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
 
       opts = [socket_handler: FaktoryWorker.SocketMock]
 
