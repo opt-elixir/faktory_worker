@@ -4,7 +4,7 @@ defmodule FaktoryWorker.MixProject do
   def project do
     [
       app: :faktory_worker,
-      version: "1.9.6",
+      version: "1.9.7",
       elixir: "~> 1.8",
       description: description(),
       package: package(),
@@ -42,7 +42,7 @@ defmodule FaktoryWorker.MixProject do
       name: "Faktory Worker",
       main: "faktory-worker",
       extras: doc_extras(),
-      source_url: "https://github.com/SeatedInc/faktory_worker"
+      source_url: "https://github.com/opt-elixir/faktory_worker"
     ]
   end
 
@@ -65,7 +65,7 @@ defmodule FaktoryWorker.MixProject do
       name: :faktory_worker,
       maintainers: ["Stuart Welham", "John Griffin", "Peter Brown"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/SeatedInc/faktory_worker"}
+      links: %{"GitHub" => "https://github.com/opt-elixir/faktory_worker"}
     ]
   end
 end

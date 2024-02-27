@@ -1,4 +1,12 @@
+## 1.9.7 - 2024-02-27
+
+- Heartbeat can recover from an error condition. [#201](https://github.com/opt-elixir/faktory_worker/pull/201)
+- Maintenance - minor alignment with conventions, and fix lingering test issues. [#200](https://github.com/opt-elixir/faktory_worker/pull/200)
+- Bump ex_doc from 0.30.6 to 0.31.1. [#199](https://github.com/opt-elixir/faktory_worker/pull/199)
+- Bump excoveralls from 0.17.1 to 0.18.0 [#196](https://github.com/opt-elixir/faktory_worker/pull/196)
+
 ## 1.9.6 - 2023-07-25
+
 - fix queue distribution [#195](https://github.com/opt-elixir/faktory_worker/pull/195)
 - Bump mox from 1.0.2 to 1.1.0 dependencies [#193](https://github.com/opt-elixir/faktory_worker/pull/193)
 - Bump ex_doc from 0.29.4 to 0.30.6 dependencies [#192](https://github.com/opt-elixir/faktory_worker/pull/192)
@@ -6,7 +14,6 @@
 - Bump jason from 1.4.0 to 1.4.1 dependencies [#189](https://github.com/opt-elixir/faktory_worker/pull/189)
 - Bump ex_doc from 0.29.4 to 0.30.3 dependencies [#188](https://github.com/opt-elixir/faktory_worker/pull/188)
 
-  
 ## 1.9.5 - 2023-07-25
 
 - acks running jobs whenever a worker is terminated, as successful via `ACK` if
@@ -37,6 +44,7 @@
 
 - Bump jason from 1.3.0 to 1.4.0 ([#170](https://github.com/opt-elixir/faktory_worker/pull/170))
 - Bump ex_doc from 0.28.4 to 0.28.5 ([#169](https://github.com/opt-elixir/faktory_worker/pull/169))
+
 ## [1.9.1] - 2022-08-24
 
 - Add more granular warn/error level logging for various events in telemetry ([#166](https://github.com/opt-elixir/faktory_worker/pull/166))
@@ -52,11 +60,13 @@
   now return `{:error, :timeout}`).
 
 ## [1.8.0] - 2022-04-04
+
 - Fix `parent_id` vs `parent_bid`
 This was a typo making passing of children batches require using `parent_id` over `parent_bid` which the docs say
 - Bump some deps with dependabot (`telemetry` 1.0.0 to 1.1.0, `ex_doc` from `0.28` to `0.28.3`
 
 ## [1.7.0] - 2022-02-09
+
 ### Removed
 
 - Removed Broadway to simplify supervision tree [#149](https://github.com/opt-elixir/faktory_worker/pull/149)
@@ -66,7 +76,6 @@ This was a typo making passing of children batches require using `parent_id` ove
 - Updated exDoc [#151](https://github.com/opt-elixir/faktory_worker/pull/151)
 
 ## [1.6.0] - 2021-11-05
-
 
 ### Added
 
