@@ -233,7 +233,17 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH test_queue default\r\n" ->
+      expect(FaktoryWorker.SocketMock, :send, fn _, "FETCH " <> msg ->
+        assert String.ends_with?(msg, "\r\n")
+
+        sorted_queues =
+          msg
+          |> String.trim("\r\n")
+          |> String.split(" ")
+          |> Enum.sort()
+
+        assert sorted_queues == ["default", "test_queue"]
+
         :ok
       end)
 

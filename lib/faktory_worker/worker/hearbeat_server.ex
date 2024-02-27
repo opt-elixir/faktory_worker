@@ -8,6 +8,8 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   alias FaktoryWorker.Worker.Server
   alias FaktoryWorker.Worker.Pool
 
+  require Logger
+
   @spec start_link(opts :: keyword()) :: GenServer.on_start()
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: name_from_opts(opts))
@@ -58,7 +60,7 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
 
   @impl true
   def handle_info(:beat, %{conn: conn, process_wid: process_wid, beat_state: beat_state} = state)
-      when beat_state in [:ok, :quiet] do
+      when beat_state in [:ok, :quiet, :error] do
     state =
       conn
       |> ConnectionManager.send_command({:beat, process_wid})
@@ -68,6 +70,10 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
   end
 
   def handle_info(:beat, state) do
+    Logger.info(
+      "[faktory-worker] not sending heartbeat because the beat_state is #{inspect(state.beat_state)}"
+    )
+
     {:noreply, %{state | beat_ref: nil}, {:continue, :schedule_beat}}
   end
 
@@ -101,7 +107,10 @@ defmodule FaktoryWorker.Worker.HeartbeatServer do
     %{state | beat_state: new_beat_state, conn: conn, beat_ref: nil}
   end
 
-  defp handle_beat_response({{result, _}, conn}, state) when result in [:ok, :error] do
+  defp handle_beat_response({{result, msg}, conn}, state) when result in [:ok, :error] do
+    if result != :ok,
+      do: Logger.info("[faktory-worker] unexpected heartbeat response #{inspect({result, msg})}")
+
     Telemetry.execute(:beat, result, %{
       prev_status: state.beat_state,
       wid: state.process_wid
