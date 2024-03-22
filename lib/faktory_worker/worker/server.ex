@@ -82,8 +82,12 @@ defmodule FaktoryWorker.Worker.Server do
   @impl true
   def terminate(_, state = %{job_ref: task = %Task{}}) do
     case Task.shutdown(task, :brutal_kill) do
-      {:ok, _} -> Worker.ack_job(state, :ok)
-      _ -> Worker.ack_job(state, {:error, "Worker Terminated"})
+      {:ok, _} ->
+        Worker.ack_job(state, :ok)
+
+      _ ->
+        Logger.info("Sending Worker Terminated Message")
+        Worker.ack_job(state, {:error, "Worker Terminated"})
     end
   end
 
