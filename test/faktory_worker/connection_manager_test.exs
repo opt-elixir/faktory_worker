@@ -98,13 +98,10 @@ defmodule FaktoryWorker.ConnectionManagerTest do
     test "should unset the connection when there is a socket failure" do
       connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, "INFO\r\n" ->
-        {:error, :closed}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :connect, fn _, _, _ ->
-        {:error, :econnrefused}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, "INFO\r\n" -> {:error, :closed} end)
+      |> expect(:connect, fn _, _, _ -> {:error, :econnrefused} end)
+      |> expect(:close, fn _ -> :ok end)
 
       expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
 
@@ -164,13 +161,10 @@ defmodule FaktoryWorker.ConnectionManagerTest do
 
       connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, _ ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:ok, "+OK\r\n"}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, _ -> :ok end)
+      |> expect(:recv, fn _ -> {:ok, "+OK\r\n"} end)
+      |> expect(:close, fn _ -> :ok end)
 
       expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
 
