@@ -4,6 +4,7 @@ defmodule FaktoryWorker.Worker.Server do
   use GenServer
 
   alias FaktoryWorker.Worker
+  require Logger
 
   @spec start_link(opts :: keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -86,7 +87,7 @@ defmodule FaktoryWorker.Worker.Server do
         Worker.ack_job(state, :ok)
 
       _ ->
-        Logger.info("Sending Worker Terminated Message")
+        Logger.info("[faktory-worker] Sending Worker Terminated Message")
         Worker.ack_job(state, {:error, "Worker Terminated"})
     end
   end
