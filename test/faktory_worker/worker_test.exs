@@ -817,25 +817,19 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, :closed}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, ^ack_command -> :ok end)
+      |> expect(:recv, fn _ -> {:error, :closed} end)
+      |> expect(:close, fn _ -> :ok end)
 
       expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
       # the connection manager retries a failed request once
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, ^ack_command ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, :closed}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, ^ack_command -> :ok end)
+      |> expect(:recv, fn _ -> {:error, :closed} end)
+      |> expect(:close, fn _ -> :ok end)
 
       opts = [
         process_wid: Random.process_wid(),
@@ -884,26 +878,20 @@ defmodule FaktoryWorker.WorkerTest do
 
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, :closed}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, ^fail_command -> :ok end)
+      |> expect(:recv, fn _ -> {:error, :closed} end)
+      |> expect(:close, fn _ -> :ok end)
 
       expect(FaktoryWorker.SocketMock, :close, fn conn -> conn end)
 
       # the connection manager retries a failed request one more time
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, :closed}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, ^fail_command -> :ok end)
+      |> expect(:recv, fn _ -> {:error, :closed} end)
+      |> expect(:close, fn _ -> :ok end)
 
       opts = [
         process_wid: Random.process_wid(),
