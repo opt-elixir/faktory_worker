@@ -77,6 +77,19 @@ defmodule FaktoryWorker.Connection.ConnectionTest do
       assert {:ok, %Connection{}} = Connection.open(opts)
     end
 
+    test "should be able to set custom worker labels" do
+      worker_connection_mox(labels: ["service-xyz"])
+
+      opts = [
+        is_worker: true,
+        labels: ["service-xyz"],
+        process_wid: Random.process_wid(),
+        socket_handler: FaktoryWorker.SocketMock
+      ]
+
+      assert {:ok, %Connection{}} = Connection.open(opts)
+    end
+
     test "should return an error if the returned faktory version is not supported" do
       opts = [socket_handler: FaktoryWorker.SocketMock]
 

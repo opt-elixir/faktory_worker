@@ -27,8 +27,8 @@ defmodule FaktoryWorker.ConnectionHelpers do
     end
   end
 
-  defmacro worker_connection_mox() do
-    quote do
+  defmacro worker_connection_mox(opts \\ []) do
+    quote bind_quoted: [opts: opts] do
       {:ok, expected_host} = :inet.gethostname()
       expected_sys_pid = System.pid()
       runtime_vsn = System.version()
@@ -55,7 +55,7 @@ defmodule FaktoryWorker.ConnectionHelpers do
 
         assert args["hostname"] == to_string(expected_host)
         assert args["pid"] == String.to_integer(expected_sys_pid)
-        assert args["labels"] == ["elixir-#{runtime_vsn}"]
+        assert args["labels"] == Keyword.get(opts, :labels, ["elixir-#{runtime_vsn}"])
         assert String.length(args["wid"]) == 16
         assert args["v"] == 2
 
