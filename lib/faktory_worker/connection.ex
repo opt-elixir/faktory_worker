@@ -125,7 +125,7 @@ defmodule FaktoryWorker.Connection do
       hostname: to_string(hostname),
       wid: process_wid,
       pid: String.to_integer(sys_pid),
-      labels: ["elixir-#{System.version()}"]
+      labels: Keyword.get(opts, :labels, ["elixir-#{System.version()}"])
     }
 
     Map.merge(args, worker_args)
