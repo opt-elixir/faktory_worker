@@ -25,6 +25,7 @@ Below is the full structure of available options and a definition for each one.
 ```elixir
 [
   name: atom(),
+  retry_on_error: boolean(),
   connection: [
     host: String.t(),
     port: pos_integer(),
@@ -48,6 +49,8 @@ Below is the full structure of available options and a definition for each one.
 ### Option Definitions
 
 - `name` (default: `FaktoryWorker`) - The name to use for this instance. This is useful if you want to run more than one instance of Faktory Worker. When using this make sure the workers are configured to use the correct instance (see [Worker Configuration](#worker-configuration) below).
+
+- `retry_on_error` (default: `false`) - When disabled, only consider jobs that `raise` as failed and retry them. When enabled, also consider the return value from `perform` callbacks when determining whether or not to retry a job. A return of `:error` or `{:error, term()}` will retry the job.
 
 - `connection` - A list of options to configure the connection to Faktory.
 

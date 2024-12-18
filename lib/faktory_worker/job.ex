@@ -69,17 +69,17 @@ defmodule FaktoryWorker.Job do
   ```
   
   If you would like to consider the return value from `perform` and retry when an error is returned, you may enable
-  the `:retry_on_errors` config option.
+  the `:retry_on_error` config option.
   
   ```elixir
   # config.exs
-  config :faktory_worker, retry_on_errors: true
+  config :my_app, FaktoryWorker, retry_on_error: true
   
   # job.ex
   def perform do
     case MyWorker.do_work() do
-      # when `retry_on_errors` is enabled, returning `:error` or `{:error, term()}`
-      # will retry the job
+      # returning `:error` or `{:error, term()}` will retry the job
+      # when `:retry_on_error` is set to `true`
       :error -> :error
       {:error, reason} -> {:error, reason}
       
