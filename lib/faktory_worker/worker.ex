@@ -18,6 +18,7 @@ defmodule FaktoryWorker.Worker do
   defstruct [
     :conn_pid,
     :disable_fetch,
+    :retry_on_error,
     :fetch_ref,
     :process_wid,
     :worker_state,
@@ -40,6 +41,7 @@ defmodule FaktoryWorker.Worker do
     process_wid = Keyword.fetch!(opts, :process_wid)
     retry_interval = Keyword.get(opts, :retry_interval, @five_seconds)
     disable_fetch = Keyword.get(opts, :disable_fetch)
+    retry_on_error = Keyword.get(opts, :retry_on_error)
 
     # Delay connection startup to stagger worker connections. Without this
     # all workers try to connect at the same time and it can't handle the load
@@ -56,6 +58,7 @@ defmodule FaktoryWorker.Worker do
     %__MODULE__{
       conn_pid: conn_pid,
       disable_fetch: disable_fetch,
+      retry_on_error: retry_on_error,
       process_wid: process_wid,
       worker_state: :ok,
       faktory_name: faktory_name,

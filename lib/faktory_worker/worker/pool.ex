@@ -23,13 +23,15 @@ defmodule FaktoryWorker.Worker.Pool do
     process_wid = Keyword.get(opts, :process_wid)
     pool_opts = Keyword.get(opts, :worker_pool, [])
     disable_fetch = Keyword.get(pool_opts, :disable_fetch, false)
+    retry_on_error = Keyword.get(opts, :retry_on_error, false)
 
     opts = [
       name: :"worker_#{process_wid}_#{number}",
       faktory_name: Keyword.get(opts, :name),
       connection: connection_opts,
       process_wid: process_wid,
-      disable_fetch: disable_fetch
+      disable_fetch: disable_fetch,
+      retry_on_error: retry_on_error
     ]
 
     FaktoryWorker.Worker.Server.child_spec(opts)

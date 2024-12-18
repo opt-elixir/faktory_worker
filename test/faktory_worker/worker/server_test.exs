@@ -56,6 +56,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -179,6 +180,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -200,6 +202,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -238,6 +241,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -283,6 +287,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
@@ -300,6 +305,58 @@ defmodule FaktoryWorker.Worker.ServerTest do
       Process.send(pid, {:DOWN, :erlang.make_ref(), :process, self(), reason}, [])
 
       :ok = stop_supervised(:test_worker_1)
+    end
+    
+    test "should send 'FAIL' command when job returns error" do
+      expect_failure = fn result, message ->
+        job_id = "f47ccc395ef9d9646118434f"
+        job_ref = :erlang.make_ref()
+
+        fail_payload = %{
+          jid: job_id,
+          errtype: "Undetected Error Type",
+          message: inspect(message),
+          backtrace: []
+        }
+
+        fail_command = "FAIL #{Jason.encode!(fail_payload)}\r\n"
+
+        worker_connection_mox()
+
+        expect(FaktoryWorker.SocketMock, :send, fn _, ^fail_command ->
+          :ok
+        end)
+
+        expect(FaktoryWorker.SocketMock, :recv, fn _ ->
+          {:ok, "+OK\r\n"}
+        end)
+
+        opts = [
+          name: :test_worker_1,
+          process_wid: Random.process_wid(),
+          disable_fetch: true,
+          # enable retries when an error is returned
+          retry_on_error: true,
+          connection: [socket_handler: FaktoryWorker.SocketMock]
+        ]
+
+        pid = start_supervised!(Server.child_spec(opts))
+
+        :sys.replace_state(pid, fn state ->
+          state
+          |> Map.put(:job_start, System.monotonic_time(:millisecond))
+          |> Map.put(:job_ref, %{ref: job_ref})
+          |> Map.put(:job_id, job_id)
+          |> Map.put(:job, %{"jid" => job_id})
+        end)
+
+        Process.send(pid, {job_ref, result}, [])
+
+        :ok = stop_supervised(:test_worker_1)
+      end
+      
+      expect_failure.({:error, "oopsie!"}, "oopsie!")
+      expect_failure.(:error, "job returned :error")
     end
 
     test "should send 'FAIL' command when a job times out" do
@@ -358,6 +415,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
         name: :test_worker_1,
         process_wid: Random.process_wid(),
         disable_fetch: true,
+        retry_on_error: false,
         connection: [socket_handler: FaktoryWorker.SocketMock]
       ]
 
