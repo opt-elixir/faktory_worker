@@ -30,7 +30,8 @@ Below is the full structure of available options and a definition for each one.
     host: String.t(),
     port: pos_integer(),
     password: String.t(),
-    use_tls: boolean()
+    use_tls: boolean(),
+    labels: list(String.t())
   ],
   pool: [
     size: pos_integer(),
@@ -58,6 +59,7 @@ Below is the full structure of available options and a definition for each one.
   - `port` (default: `7419`) - The tcp port used to connect to Faktory.
   - `password` (default: `nil`) - The password used to authenticate with Faktory.
   - `use_tls` (default: `false`) - A boolean flag that indicates whether Faktory Worker should connect using a TLS connection.
+  - `labels` (default: `["elixir-#{System.version()}"]`) - A list of strings added to the worker processes.
 
 - `pool` - A list of options to configure the pool of Faktory connections used for sending jobs to Faktory.
 
