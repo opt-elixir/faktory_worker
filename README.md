@@ -13,7 +13,7 @@ To get started with Faktory Worker first add the dependency to your `mix.exs` fi
 ```elixir
 defp deps do
   [
-    {:faktory_worker, "~> 1.9.6"}
+    {:faktory_worker, "~> 1.9.8"}
   ]
 end
 ```
@@ -131,7 +131,7 @@ Faktory Worker includes a docker compose file that provisions all of the Faktory
 If you have docker compose installed you can run the `up` command from the Faktory Worker directory to start everything required.
 
 ```sh
-$ docker-compose up -d
+$ docker compose up -d
 Creating faktory_worker_test          ... done
 Creating faktory_worker_test_tls      ... done
 Creating faktory_worker_password_test ... done
@@ -142,10 +142,10 @@ Faktory have free open-source solution and enterprise edition.
 
 If you don't have enterprise license then tests will fail on enterprise features (batching operations etc). In this case you can exclude them by tag `:enterprise`
 ```sh
-$ mix test --exclude enterprise
+mix test --exclude enterprise
 ```
 
 If you are enterprise user all tests should pass
 ```sh
-$ mix test
+mix test
 ```
