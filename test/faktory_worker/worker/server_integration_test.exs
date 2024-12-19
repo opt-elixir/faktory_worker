@@ -14,7 +14,8 @@ defmodule FaktoryWorker.Worker.ServerIntegrationTest do
       opts = [
         name: :test_worker_1,
         process_wid: Random.process_wid(),
-        disable_fetch: true
+        disable_fetch: true,
+        retry_on_error: false
       ]
 
       pid = start_supervised!(Server.child_spec(opts))
