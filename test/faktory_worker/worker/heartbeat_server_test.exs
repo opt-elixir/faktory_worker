@@ -241,17 +241,11 @@ defmodule FaktoryWorker.Worker.HeartbeatServerTest do
 
       worker_connection_mox()
 
-      expect(FaktoryWorker.SocketMock, :send, fn _, ^beat_command ->
-        :ok
-      end)
-
-      expect(FaktoryWorker.SocketMock, :recv, fn _ ->
-        {:error, :closed}
-      end)
-
-      expect(FaktoryWorker.SocketMock, :connect, fn _, _, _ ->
-        {:error, :econnrefused}
-      end)
+      FaktoryWorker.SocketMock
+      |> expect(:send, fn _, ^beat_command -> :ok end)
+      |> expect(:recv, fn _ -> {:error, :closed} end)
+      |> expect(:connect, fn _, _, _ -> {:error, :econnrefused} end)
+      |> expect(:close, fn _ -> :ok end)
 
       expect(FaktoryWorker.SocketMock, :close, fn _ -> :ok end)
 
