@@ -35,6 +35,47 @@ defmodule FaktoryWorker.ConnectionManager.ServerTest do
 
       assert result == {:error, :timeout}
     end
+
+    test "should return error when connection manager is dead (noproc)" do
+      pid = spawn(fn -> :ok end)
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _reason}
+
+      assert Server.send_command(pid, {:fetch, ["default"]}) == {:error, :connection_dead}
+    end
+
+    test "should return error when connection manager is dead for ack commands" do
+      pid = spawn(fn -> :ok end)
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _reason}
+
+      assert Server.send_command(pid, {:ack, "some_jid"}) == {:error, :connection_dead}
+    end
+
+    test "should return error when connection manager is dead for fail commands" do
+      pid = spawn(fn -> :ok end)
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _reason}
+
+      payload = %{jid: "some_jid", errtype: "Error", message: "boom", backtrace: []}
+      assert Server.send_command(pid, {:fail, payload}) == {:error, :connection_dead}
+    end
+
+    test "should return error when connection manager shuts down during call" do
+      worker_connection_mox()
+
+      opts = [
+        is_worker: true,
+        process_wid: Random.process_wid(),
+        socket_handler: FaktoryWorker.SocketMock
+      ]
+
+      pid = start_supervised!({Server, opts})
+      # Stop the process to simulate shutdown
+      stop_supervised!(Server)
+
+      assert Server.send_command(pid, {:fetch, ["default"]}) == {:error, :connection_dead}
+    end
   end
 
   describe "handle_info/2" do
