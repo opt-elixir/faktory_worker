@@ -18,19 +18,17 @@ defmodule FaktoryWorker.ConnectionManager.Server do
           FaktoryWorker.Connection.response()
   def send_command(connection_manager, command, timeout \\ 5000)
 
-  # watch for and catch exits from command that may timeout
-  def send_command(connection_manager, {command_type, _} = command, timeout)
-      when command_type in [:fetch, :push] do
+  # Catch exits from GenServer.call — the connection manager process may be dead
+  # (:noproc), shutting down (:normal/:shutdown), or unresponsive (:timeout).
+  def send_command(connection_manager, command, timeout) do
     try do
       GenServer.call(connection_manager, {:send_command, command}, timeout)
     catch
-      :exit, {:timeout, _} ->
-        {:error, :timeout}
+      :exit, {:timeout, _} -> {:error, :timeout}
+      :exit, {:noproc, _} -> {:error, :connection_dead}
+      :exit, {:normal, _} -> {:error, :connection_dead}
+      :exit, {:shutdown, _} -> {:error, :connection_dead}
     end
-  end
-
-  def send_command(connection_manager, command, timeout) do
-    GenServer.call(connection_manager, {:send_command, command}, timeout)
   end
 
   @impl true
