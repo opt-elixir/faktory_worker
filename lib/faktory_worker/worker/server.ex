@@ -67,7 +67,7 @@ defmodule FaktoryWorker.Worker.Server do
         {true, {:error, reason}} -> {:error, reason}
         _ -> :ok
       end
-    
+
     state = Worker.ack_job(state, ack)
     {:noreply, state}
   end

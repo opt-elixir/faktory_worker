@@ -82,7 +82,15 @@ defmodule FaktoryWorker.Telemetry do
 
   defp log_event(:ack, %{status: :error}, job) do
     duration = format_duration(job.duration)
-    log(:error, "Failed after #{duration}", job.jid, job.args, job.jobtype, job.queue)
+
+    log(
+      :error,
+      "Failed after #{duration} due to #{inspect(job.reason)}",
+      job.jid,
+      job.args,
+      job.jobtype,
+      job.queue
+    )
   end
 
   # Failed acks

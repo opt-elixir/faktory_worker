@@ -56,25 +56,25 @@ defmodule FaktoryWorker.Job do
 
   When defining `perform` functions, they must always accept one argument for each item in the list of values passed into
   `perform_async/2`.
-  
+
   ## Retrying jobs on failure
 
   When a job fails, the Faktory server can enqueue it again to be retried. By default, a job is only considered
   to have failed when it `raise`s an exception.
-  
+
   ```elixir
   def perform do
     raise "retry me!"
   end
   ```
-  
+
   If you would like to consider the return value from `perform` and retry when an error is returned, you may enable
   the `:retry_on_error` config option.
-  
+
   ```elixir
   # config.exs
   config :my_app, FaktoryWorker, retry_on_error: true
-  
+
   # job.ex
   def perform do
     case MyWorker.do_work() do

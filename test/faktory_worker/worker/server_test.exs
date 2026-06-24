@@ -306,7 +306,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
       :ok = stop_supervised(:test_worker_1)
     end
-    
+
     test "should send 'FAIL' command when job returns error" do
       expect_failure = fn result, message ->
         job_id = "f47ccc395ef9d9646118434f"
@@ -354,7 +354,7 @@ defmodule FaktoryWorker.Worker.ServerTest do
 
         :ok = stop_supervised(:test_worker_1)
       end
-      
+
       expect_failure.({:error, "oopsie!"}, "oopsie!")
       expect_failure.(:error, "job returned :error")
     end
