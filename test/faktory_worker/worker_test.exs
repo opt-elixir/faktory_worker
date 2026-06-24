@@ -757,6 +757,7 @@ defmodule FaktoryWorker.WorkerTest do
                args: [%{"hey" => "there!"}],
                jobtype: "FaktoryWorker.TestQueueWorker",
                queue: "test_queue",
+               reason: ^error,
                duration: _
              } = metadata
 

@@ -110,7 +110,7 @@ defmodule FaktoryWorker.Worker do
 
     state.conn_pid
     |> send_command({:ack, state.job_id})
-    |> handle_ack_response(:ok, state)
+    |> handle_ack_response(:ok, nil, state)
   end
 
   def ack_job(state, {:error, reason}) do
@@ -129,7 +129,7 @@ defmodule FaktoryWorker.Worker do
 
     state.conn_pid
     |> send_command({:fail, payload})
-    |> handle_ack_response(:error, state)
+    |> handle_ack_response(:error, reason, state)
   end
 
   def handle_fetch_response({:ok, job}, state) when is_map(job) do
@@ -190,12 +190,13 @@ defmodule FaktoryWorker.Worker do
     state
   end
 
-  defp handle_ack_response({:ok, _}, ack_type, state) do
+  defp handle_ack_response({:ok, _}, ack_type, reason, state) do
     Telemetry.execute(:ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
       jobtype: state.job["jobtype"],
       queue: state.job["queue"],
+      reason: reason,
       duration: System.monotonic_time(:millisecond) - state.job_start
     })
 
@@ -213,12 +214,13 @@ defmodule FaktoryWorker.Worker do
     })
   end
 
-  defp handle_ack_response({:error, _}, ack_type, state) do
+  defp handle_ack_response({:error, _}, ack_type, reason, state) do
     Telemetry.execute(:failed_ack, ack_type, %{
       jid: state.job_id,
       args: state.job["args"],
       jobtype: state.job["jobtype"],
       queue: state.job["queue"],
+      reason: reason,
       duration: System.monotonic_time(:millisecond) - state.job_start
     })
 
