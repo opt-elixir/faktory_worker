@@ -1,3 +1,11 @@
+## 1.9.9 - 2026-06-24
+
+- Include job failure reason in ack telemetry metadata. [#232](https://github.com/opt-elixir/faktory_worker/pull/232)
+- Catch `:noproc`/`:normal`/`:shutdown` exits in `send_command/3` to prevent crashes on stale connection PIDs. [#227](https://github.com/opt-elixir/faktory_worker/pull/227)
+- Bump telemetry from 1.3.0 to 1.4.2. [#228](https://github.com/opt-elixir/faktory_worker/pull/228) [#229](https://github.com/opt-elixir/faktory_worker/pull/229)
+- Bump jason from 1.4.4 to 1.4.5. [#230](https://github.com/opt-elixir/faktory_worker/pull/230)
+- Bump ex_doc from 0.40.1 to 0.40.3. [#231](https://github.com/opt-elixir/faktory_worker/pull/231)
+
 ## 1.9.7 - 2024-02-27
 
 - Heartbeat can recover from an error condition. [#201](https://github.com/opt-elixir/faktory_worker/pull/201)
