@@ -4,7 +4,7 @@ defmodule FaktoryWorker.MixProject do
   def project do
     [
       app: :faktory_worker,
-      version: "1.9.9",
+      version: "1.9.10",
       elixir: "~> 1.8",
       description: description(),
       package: package(),

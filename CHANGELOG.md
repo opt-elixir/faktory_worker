@@ -1,3 +1,7 @@
+## 1.9.10 - 2026-07-02
+
+- Relax log level from `:error` to `:warning` for worker termination. [#234](https://github.com/opt-elixir/faktory_worker/pull/234)
+
 ## 1.9.9 - 2026-06-24
 
 - Include job failure reason in ack telemetry metadata. [#232](https://github.com/opt-elixir/faktory_worker/pull/232)
